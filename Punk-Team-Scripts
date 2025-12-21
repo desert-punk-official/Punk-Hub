@@ -1,0 +1,23 @@
+local SupportedGames = {
+    -- Game: The Forge (Supported for both IDs found)
+    [7671049560] = function()
+        print("The Forge detected! Loading script...")
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/GBMofo/Punk-Hub/main/The-Forge"))()
+    end,
+
+    [76558904092080] = function()
+        print("The Forge (Alt ID) detected! Loading script...")
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/GBMofo/Punk-Hub/main/The-Forge"))()
+    end,
+    
+}
+
+-- Loader Logic
+local placeId = game.PlaceId
+
+if SupportedGames[placeId] then
+    SupportedGames[placeId]()
+else
+    warn("No script assigned for Game ID: " .. tostring(placeId))
+    print("Copy this ID and send it to me if you want to add a script for it!")
+end
