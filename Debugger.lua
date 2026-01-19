@@ -231,7 +231,7 @@ UIListLayout.Parent = ScrollFrame
 --========================================
 local ResizeHandle = Instance.new("TextButton")
 ResizeHandle.Size = UDim2.new(0, 30, 0, 30)
-ResizeHandle.Position = UDim2.new(1, -40, 1, -45)
+ResizeHandle.Position = UDim2.new(1, -30, 1, -30)
 ResizeHandle.AnchorPoint = Vector2.new(0, 0)
 ResizeHandle.BackgroundTransparency = 1
 ResizeHandle.Text = "↗"
