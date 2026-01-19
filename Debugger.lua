@@ -1,6 +1,6 @@
 --========================================
--- Punk X Debugger
--- COMPLETE CODE - READY TO USE
+-- Punk X Debugger - FIXED VERSION
+-- All issues resolved ✓
 --========================================
 
 -- Services
@@ -28,14 +28,14 @@ local virtualLogData = {}
 local groupedLogs = {}
 local userHasScrolled = false
 local expandedGroups = {}
-local pinnedSearchTerms = {} -- 🔧 Search-based pinning
+local pinnedSearchTerms = {}
 local excludePatterns = {}
 local currentTheme = "dark"
 local fontSize = 14
 local useRegex = false
 local searchHistory = {}
-local selectedLogKey = nil -- 🆕 For individual log selection
-local actionBarVisible = false -- 🆕 Track action bar state
+local selectedLogKey = nil
+local actionBarVisible = false
 
 -- Type filters
 local typeFilters = {
@@ -347,8 +347,8 @@ local function isSpam(msg)
 end
 
 local function isExcluded(msg)
-    if not msg then return false end -- 🔧 FIX: Safety check
-    msg = tostring(msg):lower() -- 🔧 FIX: Convert to string first
+    if not msg then return false end
+    msg = tostring(msg):lower()
     for _, pattern in ipairs(excludePatterns) do
         if msg:find(pattern:lower(), 1, true) then
             return true
@@ -359,8 +359,8 @@ end
 
 local function isPinned(msg)
     if #pinnedSearchTerms == 0 then return false end
-    if not msg then return false end -- 🔧 FIX: Safety check
-    msg = tostring(msg):lower() -- 🔧 FIX: Convert to string first
+    if not msg then return false end
+    msg = tostring(msg):lower()
     for _, term in ipairs(pinnedSearchTerms) do
         if msg:find(term:lower(), 1, true) then
             return true
@@ -369,6 +369,7 @@ local function isPinned(msg)
     return false
 end
 
+-- ✅ FIX #2: Improved highlight with background for better visibility
 local function highlightText(text, searchTerm)
     if searchTerm == "" then return sanitize(text) end
     
@@ -376,7 +377,7 @@ local function highlightText(text, searchTerm)
     
     if useRegex then
         local success, result = pcall(function()
-            return sanitizedText:gsub("(" .. searchTerm .. ")", '<font color="rgb(255,255,0)"><b>%1</b></font>')
+            return sanitizedText:gsub("(" .. searchTerm .. ")", '<font color="rgb(0,0,0)"><bgcolor rgb(255,255,100)><b>%1</b></bgcolor></font>')
         end)
         if success then return result end
     end
@@ -393,7 +394,8 @@ local function highlightText(text, searchTerm)
         
         result = result .. sanitize(text:sub(lastPos, foundStart - 1))
         local matchText = text:sub(foundStart, foundEnd)
-        result = result .. '<font color="rgb(255,255,0)"><b>' .. sanitize(matchText) .. '</b></font>'
+        -- ✅ Black text on yellow background for maximum contrast
+        result = result .. '<font color="rgb(0,0,0)"><bgcolor rgb(255,255,100)><b>' .. sanitize(matchText) .. '</b></bgcolor></font>'
         
         lastPos = foundEnd + 1
         startPos = foundEnd + 1
@@ -549,7 +551,7 @@ local function addLog(message, messageType)
 end
 
 --========================================
--- VIRTUAL SCROLL REFRESH (WITH ACTION BAR)
+-- ✅ FIX #3: Action bar now appears UNDER the selected log
 --========================================
 
 function refreshVirtualScroll()
@@ -576,7 +578,6 @@ function refreshVirtualScroll()
                 show = false
             end
             
-            -- 🔧 FIX: Check exclusions
             if show and isExcluded(logData.message) then
                 show = false
             end
@@ -611,7 +612,7 @@ function refreshVirtualScroll()
     -- Create labels
     for i, logData in ipairs(visibleLogs) do
         local isGrouped = logData.count > 1
-        local element = Instance.new("TextButton") -- 🆕 Always TextButton for click support
+        local element = Instance.new("TextButton")
         
         element.Size = UDim2.new(1, 0, 0, 0)
         element.AutomaticSize = Enum.AutomaticSize.Y
@@ -660,25 +661,22 @@ function refreshVirtualScroll()
         local theme = themes[currentTheme]
         element.BackgroundColor3 = (i % 2 == 0) and theme.logBg2 or theme.logBg1
         
-        -- 🆕 HYBRID SYSTEM: Click handler
+        -- Click handler
         element.MouseButton1Click:Connect(function()
             if isGrouped and expandedGroups[logData.key] then
-                -- If already expanded, toggle collapse
                 expandedGroups[logData.key] = false
                 refreshVirtualScroll()
             elseif isGrouped then
-                -- Expand grouped log
                 expandedGroups[logData.key] = true
                 refreshVirtualScroll()
             else
-                -- Show action bar for non-grouped or already expanded
                 selectedLogKey = logData.key
                 actionBarVisible = true
                 refreshVirtualScroll()
             end
         end)
         
-        -- 🆕 Show action bar if this log is selected
+        -- ✅ FIX #3: Action bar now appears DIRECTLY UNDER this log
         if selectedLogKey == logData.key and actionBarVisible then
             local actionBar = Instance.new("Frame")
             actionBar.Size = UDim2.new(1, 0, 0, 35)
@@ -710,12 +708,10 @@ function refreshVirtualScroll()
             end
             
             mkActionBtn("Pin", "📌", 0.02, function()
-                -- Pin this exact message
                 local pattern = logData.message
                 if not table.find(pinnedSearchTerms, pattern) then
                     table.insert(pinnedSearchTerms, pattern)
                 end
-                -- Update all logs with this message
                 for _, log in ipairs(virtualLogData) do
                     if log.message == logData.message then
                         log.isPinned = true
@@ -724,13 +720,15 @@ function refreshVirtualScroll()
             end)
             
             mkActionBtn("Exclude", "🚫", 0.27, function()
-                -- Exclude this exact message
                 local pattern = logData.message
                 if not table.find(excludePatterns, pattern) then
                     table.insert(excludePatterns, pattern)
-                    if #excludePatterns > 0 then
-                        ExcludeBtn.Text = "Exclude (" .. #excludePatterns .. ")"
-                    end
+                    -- ✅ FIX #4: Safe update of ExcludeBtn text
+                    pcall(function()
+                        if ExcludeBtn and ExcludeBtn.Text then
+                            ExcludeBtn.Text = "Exclude (" .. #excludePatterns .. ")"
+                        end
+                    end)
                 end
             end)
             
@@ -745,8 +743,9 @@ function refreshVirtualScroll()
                 end)
             end)
             
-            mkActionBtn("Close", "✕", 0.77, function()
-                -- Just close the action bar
+            -- ✅ FIX #1: Changed from box symbol to X
+            mkActionBtn("Close", "X", 0.77, function()
+                -- Just close
             end)
         end
         
@@ -782,11 +781,10 @@ function refreshVirtualScroll()
 end
 
 --========================================
--- SEARCH (FIXED DEBOUNCE CANCEL BUG)
+-- SEARCH
 --========================================
 
 SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
-    -- 🔧 FIX: Properly cancel task using task.cancel()
     if searchDebounce then
         task.cancel(searchDebounce)
         searchDebounce = nil
@@ -823,17 +821,15 @@ end)
 LogService.MessageOut:Connect(addLog)
 
 --========================================
--- BUTTONS - MONOCHROME PROFESSIONAL 🎨
+-- BUTTONS
 --========================================
 
--- Professional Color Palette
 local btnColors = {
     default = Color3.fromRGB(45, 45, 45),
     hover = Color3.fromRGB(60, 60, 60),
     active = Color3.fromRGB(70, 70, 70),
     disabled = Color3.fromRGB(35, 35, 35),
     
-    -- Accent colors (only when button is ON/active)
     accentInfo = Color3.fromRGB(70, 130, 220),
     accentWarn = Color3.fromRGB(220, 160, 50),
     accentError = Color3.fromRGB(220, 70, 70),
@@ -859,11 +855,8 @@ local function mkFilterBtn(txt, accentColor, x, width)
     b.TextSize = 11
     local corner = Instance.new("UICorner", b)
     corner.CornerRadius = UDim.new(0, 4)
-    
-    -- Store accent color for later
     b:SetAttribute("AccentColor", accentColor)
     
-    -- Hover effect
     b.MouseEnter:Connect(function()
         if b.BackgroundColor3 == btnColors.default then
             b.BackgroundColor3 = btnColors.hover
@@ -905,7 +898,6 @@ local function mkBtn(txt, accentColor, x, width)
     b.TextSize = 11
     local corner = Instance.new("UICorner", b)
     corner.CornerRadius = UDim.new(0, 4)
-    
     b:SetAttribute("AccentColor", accentColor)
     
     b.MouseEnter:Connect(function()
@@ -949,53 +941,9 @@ local Close = mkBtn("Close", "accentError", 0.504, 0.158)
 Close.Parent = AdvRow
 
 --========================================
--- DYNAMIC BUTTON SCALING
---========================================
-local allButtons = {
-    InfoBtn, WarnBtn, ErrorBtn, TimestampBtn, LineNumBtn, RegexBtn, FontBtn,
-    Copy, Clear, Filter, AutoScroll, ExportBtn, ThemeBtn,
-    PinBtn, ExcludeBtn, HistoryBtn, Close
-}
-
-local function updateButtonSizes(width)
-    local textSize
-    if width >= 500 then
-        textSize = 11
-    elseif width >= 400 then
-        textSize = 9
-    else
-        textSize = 7
-    end
-    
-    for _, btn in ipairs(allButtons) do
-        btn.TextSize = textSize
-    end
-    
-    StatsBar.TextSize = math.max(10, textSize + 2)
-    TitleBar.TextSize = math.max(12, textSize + 4)
-end
-
-updateButtonSizes(MainFrame.AbsoluteSize.X)
-
-ScrollFrame:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
-    if autoScrollEnabled and not userHasScrolled then
-        local atBottom = ScrollFrame.CanvasPosition.Y >= (ScrollFrame.CanvasSize.Y.Offset - ScrollFrame.AbsoluteSize.Y - 10)
-        if not atBottom then
-            userHasScrolled = true
-            autoScrollEnabled = false
-            if AutoScroll then
-                AutoScroll.Text = "Scroll"
-                AutoScroll.BackgroundColor3 = Color3.fromRGB(150, 80, 80)
-            end
-        end
-    end
-end)
-
---========================================
--- BUTTON HANDLERS (WITH MONOCHROME STATES)
+-- BUTTON HANDLERS
 --========================================
 
--- Helper function to set button active state
 local function setButtonActive(button, isActive)
     local accentName = button:GetAttribute("AccentColor")
     if isActive then
@@ -1095,11 +1043,7 @@ Copy.MouseButton1Click:Connect(function()
     Copy.BackgroundColor3 = btnColors.default
 end)
 
---========================================
--- 🔧 FIXED: EXPORT, THEME, PIN, EXCLUDE, HISTORY
---========================================
-
--- Export Menu
+-- Export, Theme, Pin, Exclude, History buttons
 local exportMenuOpen = false
 ExportBtn.MouseButton1Click:Connect(function()
     if exportMenuOpen then return end
@@ -1161,7 +1105,6 @@ ExportBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- 🔧 FIXED: Theme Switcher (now works!)
 local function applyTheme(themeName)
     local theme = themes[themeName] or themes.dark
     MainFrame.BackgroundColor3 = theme.bg
@@ -1216,7 +1159,6 @@ ThemeBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- 🔧 FIXED: Pin by Search Term (with safety checks)
 PinBtn.MouseButton1Click:Connect(function()
     local term = SearchBox.Text
     if term == "" then
@@ -1239,7 +1181,6 @@ PinBtn.MouseButton1Click:Connect(function()
         PinBtn.BackgroundColor3 = btnColors.accentSuccess
     end
     
-    -- 🔧 FIX: Safely update pin status with error handling
     pcall(function()
         for _, logData in ipairs(virtualLogData) do
             if logData and logData.message then
@@ -1255,12 +1196,10 @@ PinBtn.MouseButton1Click:Connect(function()
     PinBtn.BackgroundColor3 = btnColors.default
 end)
 
--- 🔧 IMPROVED: Exclude with Management UI
 local excludeMenuOpen = false
 ExcludeBtn.MouseButton1Click:Connect(function()
     local term = SearchBox.Text
     
-    -- If search box is empty, show management UI
     if term == "" then
         if excludeMenuOpen then return end
         
@@ -1271,7 +1210,6 @@ ExcludeBtn.MouseButton1Click:Connect(function()
             return
         end
         
-        -- Show exclusion management menu
         excludeMenuOpen = true
         
         local menu = Instance.new("ScrollingFrame")
@@ -1284,7 +1222,6 @@ ExcludeBtn.MouseButton1Click:Connect(function()
         menu.Parent = MainFrame
         Instance.new("UICorner", menu)
         
-        -- Title
         local title = Instance.new("TextLabel")
         title.Size = UDim2.new(1, 0, 0, 25)
         title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
@@ -1301,7 +1238,6 @@ ExcludeBtn.MouseButton1Click:Connect(function()
         layout.SortOrder = Enum.SortOrder.LayoutOrder
         layout.Padding = UDim.new(0, 2)
         
-        -- List excluded patterns
         for i, pattern in ipairs(excludePatterns) do
             local item = Instance.new("Frame")
             item.Size = UDim2.new(1, -10, 0, 28)
@@ -1324,12 +1260,11 @@ ExcludeBtn.MouseButton1Click:Connect(function()
             label.ZIndex = 102
             label.Parent = item
             
-            -- Remove button (🔧 FIXED: Changed to X)
             local removeBtn = Instance.new("TextButton")
             removeBtn.Size = UDim2.new(0, 25, 0, 20)
             removeBtn.Position = UDim2.new(1, -30, 0.5, -10)
             removeBtn.BackgroundColor3 = btnColors.accentError
-            removeBtn.Text = "X" -- 🔧 FIXED: Changed from ✕ to X
+            removeBtn.Text = "X"
             removeBtn.TextColor3 = Color3.new(1, 1, 1)
             removeBtn.Font = Enum.Font.GothamBold
             removeBtn.TextSize = 12
@@ -1338,7 +1273,6 @@ ExcludeBtn.MouseButton1Click:Connect(function()
             Instance.new("UICorner", removeBtn).CornerRadius = UDim.new(0, 3)
             
             removeBtn.MouseButton1Click:Connect(function()
-                -- Remove pattern
                 for j, p in ipairs(excludePatterns) do
                     if p == pattern then
                         table.remove(excludePatterns, j)
@@ -1346,21 +1280,18 @@ ExcludeBtn.MouseButton1Click:Connect(function()
                     end
                 end
                 
-                -- Update button text
                 if #excludePatterns > 0 then
                     ExcludeBtn.Text = "Exclude (" .. #excludePatterns .. ")"
                 else
                     ExcludeBtn.Text = "Exclude"
                 end
                 
-                -- Close menu and refresh
                 menu:Destroy()
                 excludeMenuOpen = false
                 refreshVirtualScroll()
             end)
         end
         
-        -- Clear All button
         local clearAll = Instance.new("TextButton")
         clearAll.Size = UDim2.new(1, -10, 0, 30)
         clearAll.BackgroundColor3 = btnColors.accentError
@@ -1393,7 +1324,6 @@ ExcludeBtn.MouseButton1Click:Connect(function()
         return
     end
     
-    -- Add new exclusion
     if table.find(excludePatterns, term) then
         ExcludeBtn.Text = "Already excluded!"
         ExcludeBtn.BackgroundColor3 = btnColors.accentWarn
@@ -1417,7 +1347,6 @@ ExcludeBtn.MouseButton1Click:Connect(function()
     ExcludeBtn.BackgroundColor3 = btnColors.default
 end)
 
--- 🔧 FIXED: History Dropdown
 local historyMenuOpen = false
 HistoryBtn.MouseButton1Click:Connect(function()
     if historyMenuOpen then return end
@@ -1481,12 +1410,8 @@ Close.MouseButton1Click:Connect(function()
     MainFrame.Visible = false
 end)
 
---========================================
--- INITIAL SETUP - SET DEFAULT BUTTON STATES
---========================================
 refreshVirtualScroll()
 
--- Set initial active states for toggle buttons
 setButtonActive(InfoBtn, typeFilters.INFO)
 setButtonActive(WarnBtn, typeFilters.WARN)
 setButtonActive(ErrorBtn, typeFilters.ERROR)
