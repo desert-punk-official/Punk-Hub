@@ -1,5 +1,5 @@
 --========================================
--- Punk X Debugger (Themes & Menus Fixed)
+-- Punk X Debugger (All Menu Toggles Fixed)
 -- COMPLETE CODE - READY TO USE
 --========================================
 
@@ -504,41 +504,34 @@ Copy.MouseButton1Click:Connect(function() local t=table.concat(logHistory,"\n");
 PinBtn.MouseButton1Click:Connect(function() local t=SearchBox.Text; if t=="" then return end; local f=table.find(pinnedSearchTerms,t); if f then table.remove(pinnedSearchTerms,f); PinBtn.Text="Unpinned" else table.insert(pinnedSearchTerms,t); PinBtn.Text="Pinned!" end; pcall(function() for _,l in ipairs(virtualLogData) do l.isPinned=isPinned(l.message) end end); refreshVirtualScroll(); task.wait(1.5); PinBtn.Text="Pin" end)
 Close.MouseButton1Click:Connect(function() MainFrame.Visible = false end)
 
--- RESTORED: Export Menu
+-- FIXED: Export Menu Toggle
 local exportMenuOpen = false
+local exportMenuRef = nil
 ExportBtn.MouseButton1Click:Connect(function()
-    if exportMenuOpen then return end
+    if exportMenuOpen then
+        if exportMenuRef and exportMenuRef.Parent then exportMenuRef:Destroy() end
+        exportMenuOpen = false; exportMenuRef = nil
+        return
+    end
     exportMenuOpen = true
-    local menu = Instance.new("Frame", MainFrame)
-    menu.Size = UDim2.new(0.2, 0, 0.15, 0)
-    menu.Position = UDim2.new(0.64, 0, 0.63, 0)
-    menu.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    menu.BorderSizePixel = 0
-    menu.ZIndex = 300
+    local menu = Instance.new("Frame", MainFrame); exportMenuRef = menu
+    menu.Size = UDim2.new(0.2, 0, 0.15, 0); menu.Position = UDim2.new(0.64, 0, 0.63, 0); menu.BackgroundColor3 = Color3.fromRGB(40, 40, 40); menu.BorderSizePixel = 0; menu.ZIndex = 300
     Instance.new("UICorner", menu)
-
     local function mk(txt, y, cb)
-        local b = Instance.new("TextButton", menu)
-        b.Size = UDim2.new(0.9, 0, 0.28, 0)
-        b.Position = UDim2.new(0.05, 0, y, 0)
-        b.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        b.Text = txt
-        b.TextColor3 = Color3.new(1,1,1)
-        b.ZIndex = 301
+        local b = Instance.new("TextButton", menu); b.Size = UDim2.new(0.9, 0, 0.28, 0); b.Position = UDim2.new(0.05, 0, y, 0); b.BackgroundColor3 = Color3.fromRGB(60, 60, 60); b.Text = txt; b.TextColor3 = Color3.new(1,1,1); b.ZIndex = 301
         Instance.new("UICorner", b)
-        b.MouseButton1Click:Connect(function() cb(); menu:Destroy(); exportMenuOpen=false end)
+        b.MouseButton1Click:Connect(function() cb(); if menu.Parent then menu:Destroy() end; exportMenuOpen=false end)
     end
     mk(".txt", 0.05, function() saveLog("== EXPORT =="); ExportBtn.Text="✓ TXT" end)
     mk(".json", 0.36, function() exportToJSON(); ExportBtn.Text="✓ JSON" end)
     mk(".csv", 0.67, function() exportToCSV(); ExportBtn.Text="✓ CSV" end)
-    
-    task.wait(4)
-    if menu.Parent then menu:Destroy(); exportMenuOpen=false end
+    task.delay(4, function() if menu and menu.Parent then menu:Destroy(); if exportMenuRef==menu then exportMenuOpen=false end end end)
     task.wait(1); ExportBtn.Text="Export"
 end)
 
--- RESTORED: Theme Menu
+-- FIXED: Theme Menu Toggle
 local themeMenuOpen = false
+local themeMenuRef = nil
 local function applyTheme(name)
     local t = themes[name] or themes.dark
     MainFrame.BackgroundColor3 = t.bg
@@ -548,148 +541,73 @@ local function applyTheme(name)
     currentTheme = name
     refreshVirtualScroll()
 end
-
 ThemeBtn.MouseButton1Click:Connect(function()
-    if themeMenuOpen then return end
-    themeMenuOpen = true
-    local menu = Instance.new("Frame", MainFrame)
-    menu.Size = UDim2.new(0.15, 0, 0.15, 0)
-    menu.Position = UDim2.new(0.8, 0, 0.63, 0)
-    menu.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    menu.BorderSizePixel = 0
-    menu.ZIndex = 300
-    Instance.new("UICorner", menu)
-
-    local function mk(txt, y, val)
-        local b = Instance.new("TextButton", menu)
-        b.Size = UDim2.new(0.9, 0, 0.28, 0)
-        b.Position = UDim2.new(0.05, 0, y, 0)
-        b.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        b.Text = txt
-        b.TextColor3 = Color3.new(1,1,1)
-        b.ZIndex = 301
-        Instance.new("UICorner", b)
-        b.MouseButton1Click:Connect(function() applyTheme(val); menu:Destroy(); themeMenuOpen=false end)
+    if themeMenuOpen then
+        if themeMenuRef and themeMenuRef.Parent then themeMenuRef:Destroy() end
+        themeMenuOpen = false; themeMenuRef = nil
+        return
     end
-    mk("Dark", 0.05, "dark")
-    mk("Light", 0.36, "light")
-    mk("Blue", 0.67, "blue")
-
-    task.wait(5)
-    if menu.Parent then menu:Destroy(); themeMenuOpen=false end
+    themeMenuOpen = true
+    local menu = Instance.new("Frame", MainFrame); themeMenuRef = menu
+    menu.Size = UDim2.new(0.15, 0, 0.15, 0); menu.Position = UDim2.new(0.8, 0, 0.63, 0); menu.BackgroundColor3 = Color3.fromRGB(40, 40, 40); menu.BorderSizePixel = 0; menu.ZIndex = 300
+    Instance.new("UICorner", menu)
+    local function mk(txt, y, val)
+        local b = Instance.new("TextButton", menu); b.Size = UDim2.new(0.9, 0, 0.28, 0); b.Position = UDim2.new(0.05, 0, y, 0); b.BackgroundColor3 = Color3.fromRGB(60, 60, 60); b.Text = txt; b.TextColor3 = Color3.new(1,1,1); b.ZIndex = 301
+        Instance.new("UICorner", b)
+        b.MouseButton1Click:Connect(function() applyTheme(val); if menu.Parent then menu:Destroy() end; themeMenuOpen=false end)
+    end
+    mk("Dark", 0.05, "dark"); mk("Light", 0.36, "light"); mk("Blue", 0.67, "blue")
+    task.delay(5, function() if menu and menu.Parent then menu:Destroy(); if themeMenuRef==menu then themeMenuOpen=false end end end)
 end)
 
--- RESTORED: History Menu
+-- FIXED: History Menu Toggle
 local historyMenuOpen = false
+local historyMenuRef = nil
 HistoryBtn.MouseButton1Click:Connect(function()
-    if historyMenuOpen then return end
+    if historyMenuOpen then
+        if historyMenuRef and historyMenuRef.Parent then historyMenuRef:Destroy() end
+        historyMenuOpen = false; historyMenuRef = nil
+        return
+    end
     if #searchHistory == 0 then return end
     historyMenuOpen = true
-    
-    local menu = Instance.new("ScrollingFrame", MainFrame)
-    menu.Size = UDim2.new(0.3, 0, 0.25, 0)
-    menu.Position = UDim2.new(0.42, 0, 0.57, 0)
-    menu.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    menu.BorderSizePixel = 0
-    menu.ZIndex = 300
-    menu.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    local menu = Instance.new("ScrollingFrame", MainFrame); historyMenuRef = menu
+    menu.Size = UDim2.new(0.3, 0, 0.25, 0); menu.Position = UDim2.new(0.42, 0, 0.57, 0); menu.BackgroundColor3 = Color3.fromRGB(40, 40, 40); menu.BorderSizePixel = 0; menu.ZIndex = 300; menu.AutomaticCanvasSize = Enum.AutomaticSize.Y
     Instance.new("UICorner", menu)
-    
-    local layout = Instance.new("UIListLayout", menu)
-    layout.SortOrder = Enum.SortOrder.LayoutOrder
-    
+    local layout = Instance.new("UIListLayout", menu); layout.SortOrder = Enum.SortOrder.LayoutOrder
     for i, term in ipairs(searchHistory) do
-        local b = Instance.new("TextButton", menu)
-        b.Size = UDim2.new(1, -10, 0, 30)
-        b.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        b.Text = term
-        b.TextColor3 = Color3.new(1,1,1)
-        b.ZIndex = 301
+        local b = Instance.new("TextButton", menu); b.Size = UDim2.new(1, -10, 0, 30); b.BackgroundColor3 = Color3.fromRGB(60, 60, 60); b.Text = term; b.TextColor3 = Color3.new(1,1,1); b.ZIndex = 301
         Instance.new("UICorner", b)
-        b.MouseButton1Click:Connect(function() SearchBox.Text = term; menu:Destroy(); historyMenuOpen=false end)
+        b.MouseButton1Click:Connect(function() SearchBox.Text = term; if menu.Parent then menu:Destroy() end; historyMenuOpen=false end)
     end
-    
-    task.wait(8)
-    if menu.Parent then menu:Destroy(); historyMenuOpen=false end
+    task.delay(8, function() if menu and menu.Parent then menu:Destroy(); if historyMenuRef==menu then historyMenuOpen=false end end end)
 end)
 
 -- Fixed Exclude Menu (Toggle + Scroll + Style Revert)
 local excludeMenuOpen = false
 local excludeMenuRef = nil
-
 ExcludeBtn.MouseButton1Click:Connect(function()
     if excludeMenuOpen then
         if excludeMenuRef and excludeMenuRef.Parent then excludeMenuRef:Destroy() end
-        excludeMenuOpen = false
-        excludeMenuRef = nil
+        excludeMenuOpen = false; excludeMenuRef = nil
         return
     end
-
     local t = SearchBox.Text
     if t == "" then
         if #excludePatterns == 0 then return end
         excludeMenuOpen = true
-        local m = Instance.new("ScrollingFrame", MainFrame)
-        excludeMenuRef = m
-        m.Size = UDim2.new(0.35, 0, 0.3, 0)
-        m.Position = UDim2.new(0.168, 0, 0.52, 0)
-        m.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-        m.BorderSizePixel = 0
-        m.ZIndex = 200
-        m.AutomaticCanvasSize = Enum.AutomaticSize.Y
-        m.CanvasSize = UDim2.new(0, 0, 0, 0)
+        local m = Instance.new("ScrollingFrame", MainFrame); excludeMenuRef = m
+        m.Size = UDim2.new(0.35, 0, 0.3, 0); m.Position = UDim2.new(0.168, 0, 0.52, 0); m.BackgroundColor3 = Color3.fromRGB(40, 40, 40); m.BorderSizePixel = 0; m.ZIndex = 200; m.AutomaticCanvasSize = Enum.AutomaticSize.Y; m.CanvasSize = UDim2.new(0, 0, 0, 0)
         Instance.new("UICorner", m)
-        
         local l = Instance.new("UIListLayout", m); l.SortOrder = Enum.SortOrder.LayoutOrder; l.Padding = UDim.new(0, 2)
-        
         for i, p in ipairs(excludePatterns) do
-            local f = Instance.new("Frame", m)
-            f.Size = UDim2.new(1, -6, 0, 30)
-            f.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-            f.ZIndex = 201; f.LayoutOrder = i
+            local f = Instance.new("Frame", m); f.Size = UDim2.new(1, -6, 0, 30); f.BackgroundColor3 = Color3.fromRGB(50, 50, 50); f.ZIndex = 201; f.LayoutOrder = i
             Instance.new("UICorner", f)
-            
-            -- X Button (Fixed Right - Red Rounded Square)
-            local btn = Instance.new("TextButton", f)
-            btn.Size = UDim2.new(0, 24, 0, 24)
-            btn.AnchorPoint = Vector2.new(1, 0.5)
-            btn.Position = UDim2.new(1, -4, 0.5, 0)
-            btn.BackgroundColor3 = btnColors.accentError
-            btn.Text = "X"
-            btn.TextColor3 = Color3.new(1, 1, 1)
-            btn.Font = Enum.Font.GothamBold
-            btn.TextSize = 10
-            btn.ZIndex = 203
+            local btn = Instance.new("TextButton", f); btn.Size = UDim2.new(0, 24, 0, 24); btn.AnchorPoint = Vector2.new(1, 0.5); btn.Position = UDim2.new(1, -4, 0.5, 0); btn.BackgroundColor3 = btnColors.accentError; btn.Text = "X"; btn.TextColor3 = Color3.new(1, 1, 1); btn.Font = Enum.Font.GothamBold; btn.TextSize = 10; btn.ZIndex = 203
             Instance.new("UICorner", btn)
-            
-            btn.MouseButton1Click:Connect(function()
-                table.remove(excludePatterns, i)
-                ExcludeBtn.Text = (#excludePatterns>0) and "Exclude ("..#excludePatterns..")" or "Exclude"
-                if m.Parent then m:Destroy() end
-                excludeMenuOpen=false
-                refreshVirtualScroll()
-            end)
-            
-            -- Horizontal Scrolling Text (Fills left space)
-            local scrollText = Instance.new("ScrollingFrame", f)
-            scrollText.Size = UDim2.new(1, -35, 1, 0)
-            scrollText.BackgroundTransparency = 1
-            scrollText.ScrollingDirection = Enum.ScrollingDirection.X
-            scrollText.CanvasSize = UDim2.new(0, 0, 0, 0)
-            scrollText.AutomaticCanvasSize = Enum.AutomaticSize.X
-            scrollText.ScrollBarThickness = 2
-            scrollText.ZIndex = 202
-            
-            local txt = Instance.new("TextLabel", scrollText)
-            txt.Size = UDim2.new(0, 0, 1, 0)
-            txt.AutomaticSize = Enum.AutomaticSize.X
-            txt.BackgroundTransparency = 1
-            txt.Text = "  " .. p
-            txt.TextColor3 = Color3.new(1, 1, 1)
-            txt.Font = Enum.Font.Gotham
-            txt.TextSize = 10
-            txt.TextXAlignment = Enum.TextXAlignment.Left
-            txt.ZIndex = 202
+            btn.MouseButton1Click:Connect(function() table.remove(excludePatterns, i); ExcludeBtn.Text = (#excludePatterns>0) and "Exclude ("..#excludePatterns..")" or "Exclude"; if m.Parent then m:Destroy() end; excludeMenuOpen=false; refreshVirtualScroll() end)
+            local scrollText = Instance.new("ScrollingFrame", f); scrollText.Size = UDim2.new(1, -35, 1, 0); scrollText.BackgroundTransparency = 1; scrollText.ScrollingDirection = Enum.ScrollingDirection.X; scrollText.CanvasSize = UDim2.new(0, 0, 0, 0); scrollText.AutomaticCanvasSize = Enum.AutomaticSize.X; scrollText.ScrollBarThickness = 2; scrollText.ZIndex = 202
+            local txt = Instance.new("TextLabel", scrollText); txt.Size = UDim2.new(0, 0, 1, 0); txt.AutomaticSize = Enum.AutomaticSize.X; txt.BackgroundTransparency = 1; txt.Text = "  " .. p; txt.TextColor3 = Color3.new(1, 1, 1); txt.Font = Enum.Font.Gotham; txt.TextSize = 10; txt.TextXAlignment = Enum.TextXAlignment.Left; txt.ZIndex = 202
         end
         task.delay(10, function() if m and m.Parent then m:Destroy(); if excludeMenuRef == m then excludeMenuOpen = false end end end)
         return
