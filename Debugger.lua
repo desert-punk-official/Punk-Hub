@@ -84,7 +84,7 @@ MainFrame.Active = true
 MainFrame.Parent = ScreenGui
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
 
--- Toast Container (Notifications)
+-- Toast Container
 local ToastContainer = Instance.new("Frame")
 ToastContainer.Size = UDim2.new(1, 0, 1, 0)
 ToastContainer.BackgroundTransparency = 1
@@ -104,15 +104,9 @@ local function showToast(text, color)
     t.TextSize = 12
     t.Parent = ToastContainer
     Instance.new("UICorner", t).CornerRadius = UDim.new(0, 6)
-    
-    -- Animation
     t.Position = UDim2.new(0.5, 0, 0.95, 0)
     TweenService:Create(t, TweenInfo.new(0.3), {Position = UDim2.new(0.5, 0, 0.9, 0)}):Play()
-    task.delay(1.5, function()
-        local tw = TweenService:Create(t, TweenInfo.new(0.5), {TextTransparency = 1, BackgroundTransparency = 1})
-        tw:Play()
-        tw.Completed:Connect(function() t:Destroy() end)
-    end)
+    task.delay(1.5, function() local tw = TweenService:Create(t, TweenInfo.new(0.5), {TextTransparency = 1, BackgroundTransparency = 1}); tw:Play(); tw.Completed:Connect(function() t:Destroy() end) end)
 end
 
 -- Stats Bar
@@ -190,7 +184,7 @@ SearchBox.Parent = MainFrame
 Instance.new("UICorner", SearchBox).CornerRadius = UDim.new(0, 6)
 local SearchPadding = Instance.new("UIPadding", SearchBox); SearchPadding.PaddingLeft = UDim.new(0, 8)
 
--- Eye Button (Fixed Highlight)
+-- Eye Button
 HighlightBtn = Instance.new("TextButton")
 HighlightBtn.Size = UDim2.new(0.08, 0, 0.05, 0)
 HighlightBtn.Position = UDim2.new(0.9, 0, 0.13, 0)
@@ -341,7 +335,7 @@ refreshVirtualScroll = function()
         element.MouseButton1Click:Connect(function()
             if isGrouped then
                 expandedGroups[logData.key] = not expandedGroups[logData.key]
-                selectedLogKey = (selectedLogKey == logData.key) and nil or logData.key -- Also select it
+                selectedLogKey = (selectedLogKey == logData.key) and nil or logData.key 
                 actionBarVisible = (selectedLogKey ~= nil)
             else
                 selectedLogKey = (selectedLogKey == logData.key) and nil or logData.key
@@ -435,22 +429,39 @@ Copy.MouseButton1Click:Connect(function() local t=table.concat(logHistory,"\n");
 PinBtn.MouseButton1Click:Connect(function() local t=SearchBox.Text; if t=="" then return end; local f=table.find(pinnedSearchTerms,t); if f then table.remove(pinnedSearchTerms,f); PinBtn.Text="Unpinned" else table.insert(pinnedSearchTerms,t); PinBtn.Text="Pinned!" end; pcall(function() for _,l in ipairs(virtualLogData) do l.isPinned=isPinned(l.message) end end); refreshVirtualScroll(); task.wait(1.5); PinBtn.Text="Pin" end)
 Close.MouseButton1Click:Connect(function() MainFrame.Visible = false end)
 
+-- FIXED HIGHLIGHTER
 HighlightBtn.MouseButton1Click:Connect(function()
     for _, h in ipairs(currentHighlights) do h:Destroy() end; currentHighlights = {}
     if isHighlighting then isHighlighting = false; HighlightBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50); HighlightBtn.Text="👁️"; return end
     local term = SearchBox.Text; if term == "" then return end
     isHighlighting = true; HighlightBtn.BackgroundColor3 = btnColors.accentWarn
     local count = 0
-    for _, v in ipairs(workspace:GetDescendants()) do
-        if count >= 30 then break end -- Limit 30
-        if (v:IsA("BasePart") or v:IsA("Model")) and v.Name:lower():find(term:lower(), 1, true) then
-            local h = Instance.new("Highlight")
-            h.Adornee = v
-            h.FillColor = Color3.fromRGB(255, 255, 0)
-            h.OutlineColor = Color3.fromRGB(255, 255, 255)
-            h.Parent = v
-            table.insert(currentHighlights, h)
-            count = count + 1
+    
+    -- FIXED LOGIC: Detect "players" keyword or highlight visible Parents
+    if term:lower() == "players" then
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p.Character then
+                local h = Instance.new("Highlight", p.Character)
+                h.FillColor = Color3.fromRGB(255, 255, 0); h.OutlineColor = Color3.fromRGB(255, 255, 255); h.FillTransparency=0.5
+                table.insert(currentHighlights, h)
+                count = count + 1
+            end
+        end
+    else
+        for _, v in ipairs(workspace:GetDescendants()) do
+            if count >= 30 then break end
+            if v.Name:lower():find(term:lower(), 1, true) then
+                -- VISIBILITY FIX: If it's a known invisible part, highlight the Parent (Model)
+                local target = v
+                if v.Name == "HumanoidRootPart" or v.Name == "Head" then
+                    if v.Parent and v.Parent:IsA("Model") then target = v.Parent end
+                end
+                
+                local h = Instance.new("Highlight", target)
+                h.FillColor = Color3.fromRGB(255, 255, 0); h.OutlineColor = Color3.fromRGB(255, 255, 255); h.FillTransparency=0.5
+                table.insert(currentHighlights, h)
+                count = count + 1
+            end
         end
     end
     HighlightBtn.Text = (count > 0) and ("✓"..count) or "0"
