@@ -1,5 +1,5 @@
 --========================================
--- Punk X Debugger (Fixed & Improved)
+-- Punk X Debugger (Fixed Layout & Design)
 -- COMPLETE CODE - READY TO USE
 --========================================
 
@@ -16,7 +16,7 @@ local HttpService = game:GetService("HttpService")
 local LOG_FILE_NAME = "PunkX_Logs.txt"
 local MAX_LOGS = 1000
 
--- Forward Declarations (Fixes the "attempt to index nil" error)
+-- Forward Declarations
 local ExcludeBtn = nil
 local PinBtn = nil
 
@@ -64,7 +64,7 @@ local themes = {
         bg = Color3.fromRGB(20, 20, 20),
         logBg1 = Color3.fromRGB(35, 35, 35),
         logBg2 = Color3.fromRGB(45, 45, 45),
-        selected = Color3.fromRGB(65, 65, 65), -- New selection color
+        selected = Color3.fromRGB(65, 65, 65),
         text = Color3.new(1, 1, 1),
         search = Color3.fromRGB(50, 50, 50)
     },
@@ -233,6 +233,7 @@ ScrollFrame.Parent = MainFrame
 Instance.new("UICorner", ScrollFrame)
 
 local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder -- Ensure layout order is respected
 UIListLayout.Parent = ScrollFrame
 
 --========================================
@@ -380,9 +381,9 @@ local function highlightText(text, searchTerm)
     local sanitizedText = sanitize(text)
     
     if useRegex then
-        -- Black text with yellow outline for high contrast
         local success, result = pcall(function()
-            return sanitizedText:gsub("(" .. searchTerm .. ")", '<font color="rgb(0,0,0)"><stroke color="rgb(255,255,0)" thickness="2" transparency="0">%1</stroke></font>')
+            -- BOLD YELLOW HIGHLIGHT (Cleanest Option)
+            return sanitizedText:gsub("(" .. searchTerm .. ")", '<font color="rgb(255,255,0)"><b>%1</b></font>')
         end)
         if success then return result end
     end
@@ -399,8 +400,8 @@ local function highlightText(text, searchTerm)
         
         result = result .. sanitize(text:sub(lastPos, foundStart - 1))
         local matchText = text:sub(foundStart, foundEnd)
-        -- 🔧 FIX: High Contrast Highlight (Black text, Yellow stroke)
-        result = result .. '<font color="rgb(0,0,0)"><stroke color="rgb(255,255,0)" thickness="2" transparency="0">' .. sanitize(matchText) .. '</stroke></font>'
+        -- BOLD YELLOW HIGHLIGHT (Cleanest Option)
+        result = result .. '<font color="rgb(255,255,0)"><b>' .. sanitize(matchText) .. '</b></font>'
         
         lastPos = foundEnd + 1
         startPos = foundEnd + 1
@@ -556,7 +557,7 @@ local function addLog(message, messageType)
 end
 
 --========================================
--- VIRTUAL SCROLL REFRESH (WITH ACTION BAR)
+-- VIRTUAL SCROLL REFRESH (WITH FIXED LAYOUT)
 --========================================
 
 function refreshVirtualScroll()
@@ -617,9 +618,15 @@ function refreshVirtualScroll()
     
     -- Create labels
     for i, logData in ipairs(visibleLogs) do
+        -- LayoutOrder Logic: Each log takes an even index (2, 4, 6...)
+        -- This leaves odd indices (3, 5, 7...) for the Action Bar or details
+        local baseOrder = i * 2
+        
         local isGrouped = logData.count > 1
         local element = Instance.new("TextButton")
         
+        element.Name = "Log_" .. i
+        element.LayoutOrder = baseOrder -- Force Order
         element.Size = UDim2.new(1, 0, 0, 0)
         element.AutomaticSize = Enum.AutomaticSize.Y
         element.TextWrapped = true
@@ -664,7 +671,6 @@ function refreshVirtualScroll()
         element.Text = highlightText(displayText, term)
         element.TextColor3 = logData.color
         
-        -- 🔧 FIX: Better Visual Selection Logic
         local isSelected = (selectedLogKey == logData.key)
         if isSelected then
             element.BackgroundColor3 = theme.selected
@@ -691,9 +697,11 @@ function refreshVirtualScroll()
             end
         end)
         
-        -- 🔧 FIX: Action Bar is created HERE, ensuring it is under the specific log
+        -- Action Bar Generation
         if isSelected and actionBarVisible then
             local actionBar = Instance.new("Frame")
+            actionBar.Name = "ActionBar_" .. i
+            actionBar.LayoutOrder = baseOrder + 1 -- Force Order: Directly below log
             actionBar.Size = UDim2.new(1, 0, 0, 35)
             actionBar.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
             actionBar.BorderSizePixel = 0
@@ -714,8 +722,10 @@ function refreshVirtualScroll()
                 
                 b.MouseButton1Click:Connect(function()
                     callback()
-                    selectedLogKey = nil
-                    actionBarVisible = false
+                    if txt ~= "Close" then
+                        selectedLogKey = nil
+                        actionBarVisible = false
+                    end
                     refreshVirtualScroll()
                 end)
                 
@@ -734,7 +744,6 @@ function refreshVirtualScroll()
                 end
             end)
             
-            -- 🔧 FIX: Checks if ExcludeBtn exists before trying to update text
             mkActionBtn("Exclude", "🚫", 0.27, function()
                 local pattern = logData.message
                 if not table.find(excludePatterns, pattern) then
@@ -756,14 +765,16 @@ function refreshVirtualScroll()
                 end)
             end)
             
-            -- 🔧 FIX: Changed Close icon to "X"
             mkActionBtn("Close", "X", 0.77, function()
-                -- Just closes
+                selectedLogKey = nil
+                actionBarVisible = false
             end)
         end
         
         if isGrouped and expandedGroups[logData.key] then
             local detailText = Instance.new("TextLabel")
+            detailText.Name = "Detail_" .. i
+            detailText.LayoutOrder = baseOrder + 1
             detailText.Size = UDim2.new(1, 0, 0, 0)
             detailText.AutomaticSize = Enum.AutomaticSize.Y
             detailText.TextWrapped = true
@@ -935,7 +946,7 @@ AdvRow.Size = UDim2.new(0.96, 0, 0.05, 0)
 AdvRow.Position = UDim2.new(0.02, 0, 0.84, 0)
 AdvRow.BackgroundTransparency = 1
 
--- 🔧 ASSIGN TO FORWARD DECLARED VARIABLES
+-- ASSIGN TO FORWARD DECLARED VARIABLES
 PinBtn = mkBtn("Pin", "accentWarn", 0, 0.158)
 PinBtn.Parent = AdvRow
 
