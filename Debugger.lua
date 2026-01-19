@@ -116,7 +116,7 @@ local TitleBar = Instance.new("TextLabel")
 TitleBar.Size = UDim2.new(1, -40, 0.06, 0)
 TitleBar.Position = UDim2.new(0, 0, 0.06, 0)
 TitleBar.BackgroundTransparency = 1
-TitleBar.Text = "Punk X Debugger"
+TitleBar.Text = "  Punk X Debugger"
 TitleBar.TextColor3 = Color3.fromRGB(100, 200, 255)
 TitleBar.TextXAlignment = Enum.TextXAlignment.Left
 TitleBar.Font = Enum.Font.GothamBold
@@ -231,7 +231,7 @@ UIListLayout.Parent = ScrollFrame
 --========================================
 local ResizeHandle = Instance.new("TextButton")
 ResizeHandle.Size = UDim2.new(0, 30, 0, 30)
-ResizeHandle.Position = UDim2.new(1, -30, 1, -30)
+ResizeHandle.Position = UDim2.new(1, -40, 1, -45)
 ResizeHandle.AnchorPoint = Vector2.new(0, 0)
 ResizeHandle.BackgroundTransparency = 1
 ResizeHandle.Text = "↗"
@@ -345,7 +345,8 @@ local function isSpam(msg)
 end
 
 local function isExcluded(msg)
-    msg = msg:lower()
+    if not msg then return false end -- 🔧 FIX: Safety check
+    msg = tostring(msg):lower() -- 🔧 FIX: Convert to string first
     for _, pattern in ipairs(excludePatterns) do
         if msg:find(pattern:lower(), 1, true) then
             return true
@@ -356,7 +357,8 @@ end
 
 local function isPinned(msg)
     if #pinnedSearchTerms == 0 then return false end
-    msg = msg:lower()
+    if not msg then return false end -- 🔧 FIX: Safety check
+    msg = tostring(msg):lower() -- 🔧 FIX: Convert to string first
     for _, term in ipairs(pinnedSearchTerms) do
         if msg:find(term:lower(), 1, true) then
             return true
@@ -717,7 +719,7 @@ end)
 task.spawn(function()
     local ok, hist = pcall(LogService.GetLogHistory, LogService)
     if ok then
-        addLog("--- SESSION 2 FIXED LOADED ---", Enum.MessageType.MessageInfo)
+        addLog("--- DEBUGGER LOADED ---", Enum.MessageType.MessageInfo)
         for _, v in ipairs(hist) do
             addLog(v.message, v.messageType)
         end
@@ -1121,7 +1123,7 @@ ThemeBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- 🔧 FIXED: Pin by Search Term
+-- 🔧 FIXED: Pin by Search Term (with safety checks)
 PinBtn.MouseButton1Click:Connect(function()
     local term = SearchBox.Text
     if term == "" then
@@ -1144,9 +1146,14 @@ PinBtn.MouseButton1Click:Connect(function()
         PinBtn.BackgroundColor3 = btnColors.accentSuccess
     end
     
-    for _, logData in ipairs(virtualLogData) do
-        logData.isPinned = isPinned(logData.message)
-    end
+    -- 🔧 FIX: Safely update pin status with error handling
+    pcall(function()
+        for _, logData in ipairs(virtualLogData) do
+            if logData and logData.message then
+                logData.isPinned = isPinned(logData.message)
+            end
+        end
+    end)
     
     refreshVirtualScroll()
     
@@ -1155,22 +1162,155 @@ PinBtn.MouseButton1Click:Connect(function()
     PinBtn.BackgroundColor3 = btnColors.default
 end)
 
--- 🔧 IMPROVED: Exclude with Feedback
+-- 🔧 IMPROVED: Exclude with Management UI
+local excludeMenuOpen = false
 ExcludeBtn.MouseButton1Click:Connect(function()
     local term = SearchBox.Text
+    
+    -- If search box is empty, show management UI
     if term == "" then
-        ExcludeBtn.Text = "Empty!"
-        ExcludeBtn.BackgroundColor3 = btnColors.accentError
-        task.wait(1)
-        ExcludeBtn.Text = "Exclude"
-        ExcludeBtn.BackgroundColor3 = btnColors.default
+        if excludeMenuOpen then return end
+        
+        if #excludePatterns == 0 then
+            ExcludeBtn.Text = "No exclusions!"
+            task.wait(1)
+            ExcludeBtn.Text = "Exclude"
+            return
+        end
+        
+        -- Show exclusion management menu
+        excludeMenuOpen = true
+        
+        local menu = Instance.new("ScrollingFrame")
+        menu.Size = UDim2.new(0.35, 0, 0.3, 0)
+        menu.Position = UDim2.new(0.168, 0, 0.52, 0)
+        menu.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        menu.BorderSizePixel = 0
+        menu.ZIndex = 100
+        menu.ScrollBarThickness = 4
+        menu.Parent = MainFrame
+        Instance.new("UICorner", menu)
+        
+        -- Title
+        local title = Instance.new("TextLabel")
+        title.Size = UDim2.new(1, 0, 0, 25)
+        title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        title.Text = "  Excluded Patterns (" .. #excludePatterns .. ")"
+        title.TextColor3 = Color3.new(1, 1, 1)
+        title.Font = Enum.Font.GothamBold
+        title.TextSize = 11
+        title.TextXAlignment = Enum.TextXAlignment.Left
+        title.ZIndex = 101
+        title.Parent = menu
+        Instance.new("UICorner", title)
+        
+        local layout = Instance.new("UIListLayout", menu)
+        layout.SortOrder = Enum.SortOrder.LayoutOrder
+        layout.Padding = UDim.new(0, 2)
+        
+        -- List excluded patterns
+        for i, pattern in ipairs(excludePatterns) do
+            local item = Instance.new("Frame")
+            item.Size = UDim2.new(1, -10, 0, 28)
+            item.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+            item.ZIndex = 101
+            item.LayoutOrder = i
+            item.Parent = menu
+            Instance.new("UICorner", item)
+            
+            local label = Instance.new("TextLabel")
+            label.Size = UDim2.new(1, -35, 1, 0)
+            label.Position = UDim2.new(0, 5, 0, 0)
+            label.BackgroundTransparency = 1
+            label.Text = pattern
+            label.TextColor3 = Color3.new(1, 1, 1)
+            label.Font = Enum.Font.Gotham
+            label.TextSize = 10
+            label.TextXAlignment = Enum.TextXAlignment.Left
+            label.TextTruncate = Enum.TextTruncate.AtEnd
+            label.ZIndex = 102
+            label.Parent = item
+            
+            -- Remove button
+            local removeBtn = Instance.new("TextButton")
+            removeBtn.Size = UDim2.new(0, 25, 0, 20)
+            removeBtn.Position = UDim2.new(1, -30, 0.5, -10)
+            removeBtn.BackgroundColor3 = btnColors.accentError
+            removeBtn.Text = "✕"
+            removeBtn.TextColor3 = Color3.new(1, 1, 1)
+            removeBtn.Font = Enum.Font.GothamBold
+            removeBtn.TextSize = 12
+            removeBtn.ZIndex = 102
+            removeBtn.Parent = item
+            Instance.new("UICorner", removeBtn).CornerRadius = UDim.new(0, 3)
+            
+            removeBtn.MouseButton1Click:Connect(function()
+                -- Remove pattern
+                for j, p in ipairs(excludePatterns) do
+                    if p == pattern then
+                        table.remove(excludePatterns, j)
+                        break
+                    end
+                end
+                
+                -- Update button text
+                if #excludePatterns > 0 then
+                    ExcludeBtn.Text = "Exclude (" .. #excludePatterns .. ")"
+                else
+                    ExcludeBtn.Text = "Exclude"
+                end
+                
+                -- Close menu and refresh
+                menu:Destroy()
+                excludeMenuOpen = false
+                refreshVirtualScroll()
+            end)
+        end
+        
+        -- Clear All button
+        local clearAll = Instance.new("TextButton")
+        clearAll.Size = UDim2.new(1, -10, 0, 30)
+        clearAll.BackgroundColor3 = btnColors.accentError
+        clearAll.Text = "Clear All Exclusions"
+        clearAll.TextColor3 = Color3.new(1, 1, 1)
+        clearAll.Font = Enum.Font.GothamBold
+        clearAll.TextSize = 11
+        clearAll.ZIndex = 101
+        clearAll.LayoutOrder = 999
+        clearAll.Parent = menu
+        Instance.new("UICorner", clearAll)
+        
+        clearAll.MouseButton1Click:Connect(function()
+            excludePatterns = {}
+            ExcludeBtn.Text = "Exclude"
+            menu:Destroy()
+            excludeMenuOpen = false
+            refreshVirtualScroll()
+        end)
+        
+        RunService.Heartbeat:Wait()
+        menu.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
+        
+        task.wait(10)
+        if menu.Parent then
+            menu:Destroy()
+            excludeMenuOpen = false
+        end
+        
         return
     end
     
+    -- Add new exclusion
     if table.find(excludePatterns, term) then
-        ExcludeBtn.Text = "Exists!"
+        ExcludeBtn.Text = "Already excluded!"
+        ExcludeBtn.BackgroundColor3 = btnColors.accentWarn
         task.wait(1)
-        ExcludeBtn.Text = "Exclude"
+        if #excludePatterns > 0 then
+            ExcludeBtn.Text = "Exclude (" .. #excludePatterns .. ")"
+        else
+            ExcludeBtn.Text = "Exclude"
+        end
+        ExcludeBtn.BackgroundColor3 = btnColors.default
         return
     end
     
@@ -1261,5 +1401,7 @@ setButtonActive(TimestampBtn, showTimestamps)
 setButtonActive(LineNumBtn, showLineNumbers)
 setButtonActive(RegexBtn, useRegex)
 setButtonActive(Filter, isFilterActive)
+
+
 print("Punk X Debugger")
 print("🎮 Ready to debug!")
