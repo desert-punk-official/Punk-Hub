@@ -1,5 +1,5 @@
 --========================================
--- Punk X Debugger (All Menu Toggles Fixed)
+-- Punk X Debugger
 -- COMPLETE CODE - READY TO USE
 --========================================
 
@@ -11,6 +11,7 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Stats = game:GetService("Stats")
 local HttpService = game:GetService("HttpService")
+local TweenService = game:GetService("TweenService")
 
 -- Config
 local LOG_FILE_NAME = "PunkX_Logs.txt"
@@ -22,6 +23,7 @@ local PinBtn = nil
 local ExportBtn = nil
 local ThemeBtn = nil
 local HistoryBtn = nil
+local HighlightBtn = nil
 
 -- State
 local isMinimized = false
@@ -43,6 +45,8 @@ local useRegex = false
 local searchHistory = {}
 local selectedLogKey = nil
 local actionBarVisible = false
+local currentHighlights = {} -- Stores active highlighters
+local isHighlighting = false
 
 -- Type filters
 local typeFilters = {
@@ -101,6 +105,35 @@ if not ScreenGui.Parent then
     ScreenGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 end
 
+-- OVERLAY FRAME (Mini Mode)
+local OverlayFrame = Instance.new("Frame")
+OverlayFrame.Name = "MiniOverlay"
+OverlayFrame.Size = UDim2.new(0.6, 0, 0.3, 0)
+OverlayFrame.Position = UDim2.new(0.2, 0, 0.05, 0)
+OverlayFrame.BackgroundTransparency = 1
+OverlayFrame.Visible = false
+OverlayFrame.Parent = ScreenGui
+
+local OverlayList = Instance.new("UIListLayout")
+OverlayList.SortOrder = Enum.SortOrder.LayoutOrder
+OverlayList.VerticalAlignment = Enum.VerticalAlignment.Top
+OverlayList.Padding = UDim.new(0, 2)
+OverlayList.Parent = OverlayFrame
+
+local RestoreBtn = Instance.new("TextButton")
+RestoreBtn.Size = UDim2.new(0, 80, 0, 25)
+RestoreBtn.Position = UDim2.new(0.5, -40, 0, 0) -- Top Center
+RestoreBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+RestoreBtn.BackgroundTransparency = 0.5
+RestoreBtn.Text = "Open Logs"
+RestoreBtn.TextColor3 = Color3.new(1, 1, 1)
+RestoreBtn.Font = Enum.Font.GothamBold
+RestoreBtn.TextSize = 11
+RestoreBtn.Visible = false
+RestoreBtn.Parent = ScreenGui
+Instance.new("UICorner", RestoreBtn).CornerRadius = UDim.new(1, 0)
+
+-- MAIN FRAME
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0.8, 0, 0.7, 0)
 MainFrame.Position = UDim2.new(0.1, 0, 0.1, 0)
@@ -113,7 +146,7 @@ Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
 
 -- Stats Bar
 local StatsBar = Instance.new("TextLabel")
-StatsBar.Size = UDim2.new(1, -20, 0.06, 0)
+StatsBar.Size = UDim2.new(1, -60, 0.06, 0)
 StatsBar.Position = UDim2.new(0, 10, 0, 0)
 StatsBar.BackgroundTransparency = 1
 StatsBar.Text = "FPS: 0 | Mem: 0 | Logs: 0"
@@ -122,6 +155,18 @@ StatsBar.TextXAlignment = Enum.TextXAlignment.Left
 StatsBar.Font = Enum.Font.GothamBold
 StatsBar.TextSize = 12
 StatsBar.Parent = MainFrame
+
+-- Minimize Button
+local MinimizeBtn = Instance.new("TextButton")
+MinimizeBtn.Size = UDim2.new(0, 30, 0, 25)
+MinimizeBtn.Position = UDim2.new(1, -35, 0, 5)
+MinimizeBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+MinimizeBtn.Text = "-"
+MinimizeBtn.TextColor3 = Color3.new(1, 1, 1)
+MinimizeBtn.Font = Enum.Font.GothamBold
+MinimizeBtn.TextSize = 18
+MinimizeBtn.Parent = MainFrame
+Instance.new("UICorner", MinimizeBtn).CornerRadius = UDim.new(0, 6)
 
 -- Title Bar
 local TitleBar = Instance.new("TextLabel")
@@ -136,7 +181,7 @@ TitleBar.TextSize = 16
 TitleBar.Parent = MainFrame
 
 --========================================
--- PERFORMANCE MONITORING
+-- PERFORMANCE
 --========================================
 local lastUpdate = tick()
 local frameCount = 0
@@ -196,9 +241,9 @@ UserInputService.InputChanged:Connect(function(input)
     if input == dragInput and dragging then updateDrag(input) end
 end)
 
--- Search Box
+-- Search Box (Reduced width for Eye Button)
 local SearchBox = Instance.new("TextBox")
-SearchBox.Size = UDim2.new(0.96, 0, 0.05, 0)
+SearchBox.Size = UDim2.new(0.86, -5, 0.05, 0)
 SearchBox.Position = UDim2.new(0.02, 0, 0.13, 0)
 SearchBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 SearchBox.PlaceholderText = "Search logs... (Regex: OFF)"
@@ -213,6 +258,17 @@ SearchBox.Parent = MainFrame
 Instance.new("UICorner", SearchBox).CornerRadius = UDim.new(0, 6)
 local SearchPadding = Instance.new("UIPadding", SearchBox)
 SearchPadding.PaddingLeft = UDim.new(0, 8)
+
+-- Highlight (Eye) Button
+HighlightBtn = Instance.new("TextButton")
+HighlightBtn.Size = UDim2.new(0.08, 0, 0.05, 0)
+HighlightBtn.Position = UDim2.new(0.9, 0, 0.13, 0)
+HighlightBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+HighlightBtn.Text = "👁️"
+HighlightBtn.TextColor3 = Color3.new(1, 1, 1)
+HighlightBtn.TextSize = 14
+HighlightBtn.Parent = MainFrame
+Instance.new("UICorner", HighlightBtn).CornerRadius = UDim.new(0, 6)
 
 -- Scroll Frame
 local ScrollFrame = Instance.new("ScrollingFrame")
@@ -329,6 +385,27 @@ local function getLogKey(message, messageType) return string.format("%s|%s", tos
 local function addLog(message, messageType)
     logRateCounter = logRateCounter + 1
     if isExcluded(message) then return end
+    
+    -- Overlay Logic (Fade)
+    if isMinimized then
+        local ol = Instance.new("TextLabel")
+        ol.Size = UDim2.new(1, 0, 0, 20)
+        ol.BackgroundTransparency = 1
+        ol.Text = message
+        ol.TextColor3 = Color3.new(1, 1, 1)
+        ol.Font = Enum.Font.Code
+        ol.TextSize = 12
+        ol.TextStrokeTransparency = 0.5
+        ol.TextWrapped = true
+        ol.Parent = OverlayFrame
+        -- Fade Out
+        task.delay(4, function()
+            local tw = TweenService:Create(ol, TweenInfo.new(1), {TextTransparency = 1, TextStrokeTransparency = 1})
+            tw:Play()
+            tw.Completed:Connect(function() ol:Destroy() end)
+        end)
+    end
+    
     local logKey = getLogKey(message, messageType)
     if groupedLogs[logKey] then
         groupedLogs[logKey].count = groupedLogs[logKey].count + 1
@@ -504,7 +581,58 @@ Copy.MouseButton1Click:Connect(function() local t=table.concat(logHistory,"\n");
 PinBtn.MouseButton1Click:Connect(function() local t=SearchBox.Text; if t=="" then return end; local f=table.find(pinnedSearchTerms,t); if f then table.remove(pinnedSearchTerms,f); PinBtn.Text="Unpinned" else table.insert(pinnedSearchTerms,t); PinBtn.Text="Pinned!" end; pcall(function() for _,l in ipairs(virtualLogData) do l.isPinned=isPinned(l.message) end end); refreshVirtualScroll(); task.wait(1.5); PinBtn.Text="Pin" end)
 Close.MouseButton1Click:Connect(function() MainFrame.Visible = false end)
 
--- FIXED: Export Menu Toggle
+-- Minimize Logic
+MinimizeBtn.MouseButton1Click:Connect(function()
+    isMinimized = true
+    MainFrame.Visible = false
+    OverlayFrame.Visible = true
+    RestoreBtn.Visible = true
+end)
+
+RestoreBtn.MouseButton1Click:Connect(function()
+    isMinimized = false
+    MainFrame.Visible = true
+    OverlayFrame.Visible = false
+    RestoreBtn.Visible = false
+    refreshVirtualScroll() -- Update view
+end)
+
+-- Highlighter Logic
+HighlightBtn.MouseButton1Click:Connect(function()
+    -- Clear existing
+    for _, h in ipairs(currentHighlights) do h:Destroy() end
+    currentHighlights = {}
+    
+    if isHighlighting then
+        isHighlighting = false
+        HighlightBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        return
+    end
+
+    local term = SearchBox.Text
+    if term == "" then return end
+    
+    isHighlighting = true
+    HighlightBtn.BackgroundColor3 = btnColors.accentWarn
+    
+    -- Find and highlight
+    for _, v in ipairs(workspace:GetDescendants()) do
+        if v:IsA("BasePart") or v:IsA("Model") then
+            if v.Name:lower():find(term:lower(), 1, true) then
+                local h = Instance.new("Highlight")
+                h.Adornee = v
+                h.FillColor = Color3.fromRGB(255, 255, 0)
+                h.OutlineColor = Color3.fromRGB(255, 255, 255)
+                h.FillTransparency = 0.5
+                h.OutlineTransparency = 0
+                h.Parent = v
+                table.insert(currentHighlights, h)
+            end
+        end
+    end
+end)
+
+-- Export Menu (Fixed Toggle)
 local exportMenuOpen = false
 local exportMenuRef = nil
 ExportBtn.MouseButton1Click:Connect(function()
@@ -529,18 +657,9 @@ ExportBtn.MouseButton1Click:Connect(function()
     task.wait(1); ExportBtn.Text="Export"
 end)
 
--- FIXED: Theme Menu Toggle
+-- Theme Menu (Fixed Toggle)
 local themeMenuOpen = false
 local themeMenuRef = nil
-local function applyTheme(name)
-    local t = themes[name] or themes.dark
-    MainFrame.BackgroundColor3 = t.bg
-    ScrollFrame.BackgroundColor3 = t.bg
-    SearchBox.BackgroundColor3 = t.search
-    SearchBox.TextColor3 = t.text
-    currentTheme = name
-    refreshVirtualScroll()
-end
 ThemeBtn.MouseButton1Click:Connect(function()
     if themeMenuOpen then
         if themeMenuRef and themeMenuRef.Parent then themeMenuRef:Destroy() end
@@ -560,7 +679,7 @@ ThemeBtn.MouseButton1Click:Connect(function()
     task.delay(5, function() if menu and menu.Parent then menu:Destroy(); if themeMenuRef==menu then themeMenuOpen=false end end end)
 end)
 
--- FIXED: History Menu Toggle
+-- History Menu (Fixed Toggle)
 local historyMenuOpen = false
 local historyMenuRef = nil
 HistoryBtn.MouseButton1Click:Connect(function()
@@ -583,7 +702,7 @@ HistoryBtn.MouseButton1Click:Connect(function()
     task.delay(8, function() if menu and menu.Parent then menu:Destroy(); if historyMenuRef==menu then historyMenuOpen=false end end end)
 end)
 
--- Fixed Exclude Menu (Toggle + Scroll + Style Revert)
+-- Exclude Menu (Toggle + Scroll)
 local excludeMenuOpen = false
 local excludeMenuRef = nil
 ExcludeBtn.MouseButton1Click:Connect(function()
