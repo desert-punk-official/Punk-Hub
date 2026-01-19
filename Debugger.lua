@@ -141,7 +141,7 @@ local frameCount = 0
 local logRateCounter = 0
 local lastRateUpdate = tick()
 
-RunService.RenderSstepped:Connect(function()
+RunService.RenderStepped:Connect(function()
     frameCount = frameCount + 1
     local now = tick()
     
@@ -214,7 +214,7 @@ end)
 -- Search Box
 local SearchBox = Instance.new("TextBox")
 SearchBox.Size = UDim2.new(0.96, 0, 0.05, 0)
-SearchBox.Position = UDim2.new(0.02, 0, 0.13, 0)
+SearchBox.Position = UDim2.new(0.02, 0, 0.14, 0)
 SearchBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 SearchBox.PlaceholderText = "Search logs... (Regex: OFF)"
 SearchBox.Text = ""
@@ -232,8 +232,8 @@ SearchPadding.PaddingLeft = UDim.new(0, 8)
 
 -- Scroll Frame
 local ScrollFrame = Instance.new("ScrollingFrame")
-ScrollFrame.Position = UDim2.new(0.02, 0, 0.19, 0)
-ScrollFrame.Size = UDim2.new(0.96, 0, 0.52, 0)
+ScrollFrame.Position = UDim2.new(0.02, 0, 0.20, 0)
+ScrollFrame.Size = UDim2.new(0.96, 0, 0.50, 0)
 ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 ScrollFrame.ScrollBarThickness = 4
 ScrollFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
@@ -765,7 +765,7 @@ LogService.MessageOut:Connect(addLog)
 -- Row 1: Type Filters
 local FilterRow = Instance.new("Frame", MainFrame)
 FilterRow.Size = UDim2.new(0.96, 0, 0.05, 0)
-FilterRow.Position = UDim2.new(0.02, 0, 0.72, 0)
+FilterRow.Position = UDim2.new(0.02, 0, 0.71, 0)
 FilterRow.BackgroundTransparency = 1
 
 local function mkFilterBtn(txt, col, x, width)
@@ -786,7 +786,7 @@ local InfoBtn = mkFilterBtn("INFO", Color3.fromRGB(70, 120, 200), 0, 0.15)
 local WarnBtn = mkFilterBtn("WARN", Color3.fromRGB(200, 150, 0), 0.16, 0.15)
 local ErrorBtn = mkFilterBtn("ERROR", Color3.fromRGB(200, 70, 70), 0.32, 0.15)
 local TimestampBtn = mkFilterBtn("Time", Color3.fromRGB(80, 80, 80), 0.48, 0.12)
-local LineNumBtn =  mkFilterBtn("Line", Color3.fromRGB(80, 80, 80), 0.61, 0.12)
+local LineNumBtn = mkFilterBtn("Line", Color3.fromRGB(80, 80, 80), 0.61, 0.12)
 local RegexBtn = mkFilterBtn("Regex", Color3.fromRGB(100, 100, 100), 0.74, 0.12) -- 🆕
 local FontBtn = mkFilterBtn("A+", Color3.fromRGB(90, 90, 90), 0.87, 0.12) -- 🆕
 -- Row 2: Main Controls
