@@ -1,5 +1,5 @@
 --========================================
--- Punk X Debugger (Fixed Layout & Design)
+-- Punk X Debugger (Final Polish)
 -- COMPLETE CODE - READY TO USE
 --========================================
 
@@ -108,16 +108,16 @@ MainFrame.Active = true
 MainFrame.Parent = ScreenGui
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
 
--- Stats Bar
+-- Stats Bar (Smaller Font)
 local StatsBar = Instance.new("TextLabel")
-StatsBar.Size = UDim2.new(1, -40, 0.06, 0)
-StatsBar.Position = UDim2.new(0, 0, 0, 0)
+StatsBar.Size = UDim2.new(1, -20, 0.06, 0)
+StatsBar.Position = UDim2.new(0, 10, 0, 0)
 StatsBar.BackgroundTransparency = 1
-StatsBar.Text = "  FPS: 0 | Memory: 0 MB | Ping: 0ms | Rate: 0/s | Logs: 0"
+StatsBar.Text = "FPS: 0 | Mem: 0 | Logs: 0"
 StatsBar.TextColor3 = Color3.new(1, 1, 1)
 StatsBar.TextXAlignment = Enum.TextXAlignment.Left
 StatsBar.Font = Enum.Font.GothamBold
-StatsBar.TextSize = 14
+StatsBar.TextSize = 12 -- Reduced size
 StatsBar.Parent = MainFrame
 
 -- Title Bar
@@ -133,7 +133,7 @@ TitleBar.TextSize = 16
 TitleBar.Parent = MainFrame
 
 --========================================
--- PERFORMANCE MONITORING
+-- PERFORMANCE MONITORING & SMART TEXT
 --========================================
 local lastUpdate = tick()
 local frameCount = 0
@@ -157,10 +157,21 @@ RunService.RenderStepped:Connect(function()
         local logRate = logRateCounter
         logRateCounter = 0
         
-        StatsBar.Text = string.format(
-            "  FPS: %d | Memory: %d MB | Ping: %dms | Rate: %d/s | Logs: %d",
-            fps, memoryUsage, ping, logRate, #virtualLogData
-        )
+        -- Smart Shortening Logic based on Width
+        local width = MainFrame.AbsoluteSize.X
+        if width < 450 then
+            -- Short Format for small screens
+            StatsBar.Text = string.format(
+                "FPS:%d | Mem:%d | P:%d | L:%d",
+                fps, memoryUsage, ping, #virtualLogData
+            )
+        else
+            -- Full Format
+            StatsBar.Text = string.format(
+                "FPS: %d | Memory: %d MB | Ping: %dms | Logs: %d",
+                fps, memoryUsage, ping, #virtualLogData
+            )
+        end
     end
 end)
 
@@ -202,7 +213,7 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- Search Box
+-- Search Box (Smaller Text)
 local SearchBox = Instance.new("TextBox")
 SearchBox.Size = UDim2.new(0.96, 0, 0.05, 0)
 SearchBox.Position = UDim2.new(0.02, 0, 0.14, 0)
@@ -213,7 +224,7 @@ SearchBox.ClearTextOnFocus = false
 SearchBox.TextColor3 = Color3.new(1, 1, 1)
 SearchBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
 SearchBox.Font = Enum.Font.Gotham
-SearchBox.TextSize = 14
+SearchBox.TextSize = 12 -- Fix: Reduced to prevent overflow
 SearchBox.TextXAlignment = Enum.TextXAlignment.Left
 SearchBox.Parent = MainFrame
 Instance.new("UICorner", SearchBox).CornerRadius = UDim.new(0, 6)
@@ -233,7 +244,7 @@ ScrollFrame.Parent = MainFrame
 Instance.new("UICorner", ScrollFrame)
 
 local UIListLayout = Instance.new("UIListLayout")
-UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder -- Ensure layout order is respected
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 UIListLayout.Parent = ScrollFrame
 
 --========================================
@@ -251,14 +262,6 @@ ResizeHandle.TextSize = 18
 ResizeHandle.ZIndex = 10
 ResizeHandle.Parent = MainFrame
 
-ResizeHandle.MouseEnter:Connect(function()
-    ResizeHandle.TextColor3 = Color3.fromRGB(255, 255, 255)
-end)
-
-ResizeHandle.MouseLeave:Connect(function()
-    ResizeHandle.TextColor3 = Color3.fromRGB(180, 180, 180)
-end)
-
 local resizing = false
 
 ResizeHandle.InputBegan:Connect(function(input)
@@ -271,10 +274,8 @@ UserInputService.InputChanged:Connect(function(input)
     if resizing and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
         local mousePos = input.Position
         local framePos = MainFrame.AbsolutePosition
-        
         local newWidth = math.max(300, mousePos.X - framePos.X)
         local newHeight = math.max(180, mousePos.Y - framePos.Y)
-        
         MainFrame.Size = UDim2.new(0, newWidth, 0, newHeight)
     end
 end)
@@ -302,32 +303,6 @@ Instance.new("UICorner", ToggleButton).CornerRadius = UDim.new(1, 0)
 
 ToggleButton.MouseButton1Click:Connect(function()
     MainFrame.Visible = not MainFrame.Visible
-end)
-
-local toggleDragging = false
-local toggleDragStart, toggleStartPos
-
-ToggleButton.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        toggleDragging = true
-        toggleDragStart = input.Position
-        toggleStartPos = ToggleButton.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                toggleDragging = false
-            end
-        end)
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if toggleDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = input.Position - toggleDragStart
-        ToggleButton.Position = UDim2.new(
-            toggleStartPos.X.Scale, toggleStartPos.X.Offset + delta.X,
-            toggleStartPos.Y.Scale, toggleStartPos.Y.Offset + delta.Y
-        )
-    end
 end)
 
 --========================================
@@ -377,12 +352,10 @@ end
 
 local function highlightText(text, searchTerm)
     if searchTerm == "" then return sanitize(text) end
-    
     local sanitizedText = sanitize(text)
     
     if useRegex then
         local success, result = pcall(function()
-            -- BOLD YELLOW HIGHLIGHT (Cleanest Option)
             return sanitizedText:gsub("(" .. searchTerm .. ")", '<font color="rgb(255,255,0)"><b>%1</b></font>')
         end)
         if success then return result end
@@ -392,15 +365,14 @@ local function highlightText(text, searchTerm)
     local lastPos = 1
     local lowerText = text:lower()
     local lowerSearch = searchTerm:lower()
-    
     local startPos = 1
+    
     while true do
         local foundStart, foundEnd = lowerText:find(escapePattern(lowerSearch), startPos, true)
         if not foundStart then break end
         
         result = result .. sanitize(text:sub(lastPos, foundStart - 1))
         local matchText = text:sub(foundStart, foundEnd)
-        -- BOLD YELLOW HIGHLIGHT (Cleanest Option)
         result = result .. '<font color="rgb(255,255,0)"><b>' .. sanitize(matchText) .. '</b></font>'
         
         lastPos = foundEnd + 1
@@ -434,27 +406,14 @@ local function saveLog(text)
 end
 
 local function exportToJSON()
-    local data = {
-        session = os.date("%Y-%m-%d %H:%M:%S"),
-        logs = {}
-    }
-    
+    local data = { session = os.date("%Y-%m-%d %H:%M:%S"), logs = {} }
     for _, log in ipairs(virtualLogData) do
         table.insert(data.logs, {
-            index = log.index,
-            time = log.time,
-            type = log.type,
-            message = log.message,
-            count = log.count
+            index = log.index, time = log.time, type = log.type, message = log.message, count = log.count
         })
     end
-    
     local json = HttpService:JSONEncode(data)
-    pcall(function()
-        if writefile then
-            writefile("PunkX_Logs.json", json)
-        end
-    end)
+    pcall(function() if writefile then writefile("PunkX_Logs.json", json) end end)
 end
 
 local function exportToCSV()
@@ -463,12 +422,7 @@ local function exportToCSV()
         csv = csv .. string.format('%d,"%s","%s","%s",%d\n',
             log.index, log.time, log.type, log.message:gsub('"', '""'), log.count)
     end
-    
-    pcall(function()
-        if writefile then
-            writefile("PunkX_Logs.csv", csv)
-        end
-    end)
+    pcall(function() if writefile then writefile("PunkX_Logs.csv", csv) end end)
 end
 
 --========================================
@@ -485,9 +439,7 @@ end
 local function addLog(message, messageType)
     logRateCounter = logRateCounter + 1
     
-    if isExcluded(message) then
-        return
-    end
+    if isExcluded(message) then return end
     
     local logKey = getLogKey(message, messageType)
     
@@ -557,7 +509,7 @@ local function addLog(message, messageType)
 end
 
 --========================================
--- VIRTUAL SCROLL REFRESH (WITH FIXED LAYOUT)
+-- VIRTUAL SCROLL REFRESH
 --========================================
 
 function refreshVirtualScroll()
@@ -565,68 +517,39 @@ function refreshVirtualScroll()
     local visibleLogs = {}
     local theme = themes[currentTheme] or themes.dark
     
-    -- Add pinned logs first
     for _, logData in ipairs(virtualLogData) do
-        if logData.isPinned then
-            table.insert(visibleLogs, logData)
-        end
+        if logData.isPinned then table.insert(visibleLogs, logData) end
     end
     
-    -- Filter regular logs
     for _, logData in ipairs(virtualLogData) do
         if not logData.isPinned then
             local show = true
-            
-            if not typeFilters[logData.type] then
-                show = false
-            end
-            
-            if show and isFilterActive and logData.isSpam then
-                show = false
-            end
-            
-            if show and isExcluded(logData.message) then
-                show = false
-            end
-            
+            if not typeFilters[logData.type] then show = false end
+            if show and isFilterActive and logData.isSpam then show = false end
+            if show and isExcluded(logData.message) then show = false end
             if show and term ~= "" then
                 if useRegex then
-                    local success = pcall(function()
-                        return logData.full:find(term)
-                    end)
+                    local success = pcall(function() return logData.full:find(term) end)
                     if not success then show = false end
                 else
-                    local searchLower = term:lower()
-                    if not logData.full:lower():find(escapePattern(searchLower), 1, true) then
-                        show = false
-                    end
+                    if not logData.full:lower():find(escapePattern(term:lower()), 1, true) then show = false end
                 end
             end
-            
-            if show then
-                table.insert(visibleLogs, logData)
-            end
+            if show then table.insert(visibleLogs, logData) end
         end
     end
     
-    -- Clear existing labels
     for _, child in ipairs(ScrollFrame:GetChildren()) do
-        if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("Frame") then
-            child:Destroy()
-        end
+        if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("Frame") then child:Destroy() end
     end
     
-    -- Create labels
     for i, logData in ipairs(visibleLogs) do
-        -- LayoutOrder Logic: Each log takes an even index (2, 4, 6...)
-        -- This leaves odd indices (3, 5, 7...) for the Action Bar or details
         local baseOrder = i * 2
-        
         local isGrouped = logData.count > 1
         local element = Instance.new("TextButton")
         
         element.Name = "Log_" .. i
-        element.LayoutOrder = baseOrder -- Force Order
+        element.LayoutOrder = baseOrder
         element.Size = UDim2.new(1, 0, 0, 0)
         element.AutomaticSize = Enum.AutomaticSize.Y
         element.TextWrapped = true
@@ -645,63 +568,35 @@ function refreshVirtualScroll()
         pad.PaddingBottom = UDim.new(0, 4)
         
         local displayText = ""
-        
-        if logData.isPinned then
-            displayText = "📌 "
-        end
-        
-        if isGrouped then
-            displayText = displayText .. (expandedGroups[logData.key] and "▼ " or "▶ ")
-        end
-        
-        if showLineNumbers then
-            displayText = displayText .. string.format("[%d] ", logData.index)
-        end
-        
-        if showTimestamps then
-            displayText = displayText .. string.format("[%s] ", logData.time)
-        end
-        
+        if logData.isPinned then displayText = "📌 " end
+        if isGrouped then displayText = displayText .. (expandedGroups[logData.key] and "▼ " or "▶ ") end
+        if showLineNumbers then displayText = displayText .. string.format("[%d] ", logData.index) end
+        if showTimestamps then displayText = displayText .. string.format("[%s] ", logData.time) end
         displayText = displayText .. string.format("%s %s", logData.prefix, logData.message)
-        
-        if logData.count > 1 then
-            displayText = displayText .. string.format(" <b>(x%d)</b>", logData.count)
-        end
+        if logData.count > 1 then displayText = displayText .. string.format(" <b>(x%d)</b>", logData.count) end
         
         element.Text = highlightText(displayText, term)
         element.TextColor3 = logData.color
         
         local isSelected = (selectedLogKey == logData.key)
-        if isSelected then
-            element.BackgroundColor3 = theme.selected
-        else
-            element.BackgroundColor3 = (i % 2 == 0) and theme.logBg2 or theme.logBg1
-        end
+        element.BackgroundColor3 = isSelected and theme.selected or ((i % 2 == 0) and theme.logBg2 or theme.logBg1)
         
         element.MouseButton1Click:Connect(function()
             if isGrouped and expandedGroups[logData.key] then
                 expandedGroups[logData.key] = false
-                refreshVirtualScroll()
             elseif isGrouped then
                 expandedGroups[logData.key] = true
-                refreshVirtualScroll()
             else
-                if selectedLogKey == logData.key then
-                    selectedLogKey = nil
-                    actionBarVisible = false
-                else
-                    selectedLogKey = logData.key
-                    actionBarVisible = true
-                end
-                refreshVirtualScroll()
+                selectedLogKey = (selectedLogKey == logData.key) and nil or logData.key
+                actionBarVisible = (selectedLogKey ~= nil)
             end
+            refreshVirtualScroll()
         end)
         
-        -- Action Bar Generation
         if isSelected and actionBarVisible then
             local actionBar = Instance.new("Frame")
             actionBar.Name = "ActionBar_" .. i
-            actionBar.LayoutOrder = baseOrder + 1 -- Force Order: Directly below log
+            actionBar.LayoutOrder = baseOrder + 1
             actionBar.Size = UDim2.new(1, 0, 0, 35)
             actionBar.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
             actionBar.BorderSizePixel = 0
@@ -719,28 +614,19 @@ function refreshVirtualScroll()
                 b.TextSize = 10
                 b.Parent = actionBar
                 Instance.new("UICorner", b).CornerRadius = UDim.new(0, 4)
-                
                 b.MouseButton1Click:Connect(function()
                     callback()
-                    if txt ~= "Close" then
-                        selectedLogKey = nil
-                        actionBarVisible = false
-                    end
+                    if txt ~= "Close" then selectedLogKey = nil; actionBarVisible = false end
                     refreshVirtualScroll()
                 end)
-                
                 return b
             end
             
             mkActionBtn("Pin", "📌", 0.02, function()
                 local pattern = logData.message
-                if not table.find(pinnedSearchTerms, pattern) then
-                    table.insert(pinnedSearchTerms, pattern)
-                end
+                if not table.find(pinnedSearchTerms, pattern) then table.insert(pinnedSearchTerms, pattern) end
                 for _, log in ipairs(virtualLogData) do
-                    if log.message == logData.message then
-                        log.isPinned = true
-                    end
+                    if log.message == logData.message then log.isPinned = true end
                 end
             end)
             
@@ -748,27 +634,16 @@ function refreshVirtualScroll()
                 local pattern = logData.message
                 if not table.find(excludePatterns, pattern) then
                     table.insert(excludePatterns, pattern)
-                    if ExcludeBtn and #excludePatterns > 0 then
-                        ExcludeBtn.Text = "Exclude (" .. #excludePatterns .. ")"
-                    end
+                    if ExcludeBtn and #excludePatterns > 0 then ExcludeBtn.Text = "Exclude (" .. #excludePatterns .. ")" end
                 end
             end)
             
             mkActionBtn("Copy", "📋", 0.52, function()
                 local txt = logData.full
-                pcall(function()
-                    if setclipboard then
-                        setclipboard(txt)
-                    elseif toclipboard then
-                        toclipboard(txt)
-                    end
-                end)
+                pcall(function() if setclipboard then setclipboard(txt) elseif toclipboard then toclipboard(txt) end end)
             end)
             
-            mkActionBtn("Close", "X", 0.77, function()
-                selectedLogKey = nil
-                actionBarVisible = false
-            end)
+            mkActionBtn("Close", "X", 0.77, function() selectedLogKey = nil; actionBarVisible = false end)
         end
         
         if isGrouped and expandedGroups[logData.key] then
@@ -785,8 +660,7 @@ function refreshVirtualScroll()
             detailText.TextYAlignment = Enum.TextYAlignment.Top
             detailText.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
             detailText.TextColor3 = Color3.fromRGB(180, 180, 180)
-            detailText.Text = string.format("  └─ Occurred %d times\n  └─ Last: %s", 
-                logData.count, logData.lastTime)
+            detailText.Text = string.format("  └─ Occurred %d times\n  └─ Last: %s", logData.count, logData.lastTime)
             detailText.Parent = ScrollFrame
             
             local detailPad = Instance.new("UIPadding", detailText)
@@ -798,29 +672,21 @@ function refreshVirtualScroll()
     end
     
     RunService.Heartbeat:Wait()
-    RunService.Heartbeat:Wait()
-    
     local contentHeight = UIListLayout.AbsoluteContentSize.Y
     ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, contentHeight + 20)
 end
 
 --========================================
--- SEARCH (FIXED DEBOUNCE)
+-- SEARCH
 --========================================
 
 SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
-    if searchDebounce then
-        task.cancel(searchDebounce)
-        searchDebounce = nil
-    end
-    
+    if searchDebounce then task.cancel(searchDebounce) searchDebounce = nil end
     searchDebounce = task.delay(0.3, function()
         local term = SearchBox.Text
         if term ~= "" and not table.find(searchHistory, term) then
             table.insert(searchHistory, 1, term)
-            if #searchHistory > 10 then
-                table.remove(searchHistory)
-            end
+            if #searchHistory > 10 then table.remove(searchHistory) end
         end
         refreshVirtualScroll()
         searchDebounce = nil
@@ -835,9 +701,7 @@ task.spawn(function()
     local ok, hist = pcall(LogService.GetLogHistory, LogService)
     if ok then
         addLog("--- DEBUGGER LOADED ---", Enum.MessageType.MessageInfo)
-        for _, v in ipairs(hist) do
-            addLog(v.message, v.messageType)
-        end
+        for _, v in ipairs(hist) do addLog(v.message, v.messageType) end
         addLog("--- LIVE LOGS BEGIN ---", Enum.MessageType.MessageInfo)
     end
 end)
@@ -852,7 +716,6 @@ local btnColors = {
     default = Color3.fromRGB(45, 45, 45),
     hover = Color3.fromRGB(60, 60, 60),
     active = Color3.fromRGB(70, 70, 70),
-    disabled = Color3.fromRGB(35, 35, 35),
     
     accentInfo = Color3.fromRGB(70, 130, 220),
     accentWarn = Color3.fromRGB(220, 160, 50),
@@ -861,7 +724,6 @@ local btnColors = {
     accentNeutral = Color3.fromRGB(100, 100, 100)
 }
 
--- Row 1: Type Filters
 local FilterRow = Instance.new("Frame", MainFrame)
 FilterRow.Size = UDim2.new(0.96, 0, 0.05, 0)
 FilterRow.Position = UDim2.new(0.02, 0, 0.71, 0)
@@ -877,19 +739,10 @@ local function mkFilterBtn(txt, accentColor, x, width)
     b.Font = Enum.Font.GothamBold
     b.TextColor3 = Color3.new(1, 1, 1)
     b.TextSize = 11
-    local corner = Instance.new("UICorner", b)
-    corner.CornerRadius = UDim.new(0, 4)
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 4)
     b:SetAttribute("AccentColor", accentColor)
-    b.MouseEnter:Connect(function()
-        if b.BackgroundColor3 == btnColors.default then
-            b.BackgroundColor3 = btnColors.hover
-        end
-    end)
-    b.MouseLeave:Connect(function()
-        if b.BackgroundColor3 == btnColors.hover then
-            b.BackgroundColor3 = btnColors.default
-        end
-    end)
+    b.MouseEnter:Connect(function() if b.BackgroundColor3 == btnColors.default then b.BackgroundColor3 = btnColors.hover end end)
+    b.MouseLeave:Connect(function() if b.BackgroundColor3 == btnColors.hover then b.BackgroundColor3 = btnColors.default end end)
     return b
 end
 
@@ -901,15 +754,14 @@ local LineNumBtn = mkFilterBtn("Line", "accentNeutral", 0.61, 0.12)
 local RegexBtn = mkFilterBtn("Regex", "accentNeutral", 0.74, 0.12)
 local FontBtn = mkFilterBtn("A" .. fontSize, "accentNeutral", 0.87, 0.12)
 
--- Row 2: Main Controls
 local BtnFrame = Instance.new("Frame", MainFrame)
 BtnFrame.Size = UDim2.new(0.96, 0, 0.05, 0)
 BtnFrame.Position = UDim2.new(0.02, 0, 0.78, 0)
 BtnFrame.BackgroundTransparency = 1
 
-local function mkBtn(txt, accentColor, x, width)
+local function mkBtn(parent, txt, accentColor, x, width)
     width = width or 0.15
-    local b = Instance.new("TextButton", BtnFrame)
+    local b = Instance.new("TextButton", parent)
     b.Size = UDim2.new(width, -4, 1, 0)
     b.Position = UDim2.new(x, 0, 0, 0)
     b.BackgroundColor3 = btnColors.default
@@ -917,51 +769,31 @@ local function mkBtn(txt, accentColor, x, width)
     b.Font = Enum.Font.GothamBold
     b.TextColor3 = Color3.new(1, 1, 1)
     b.TextSize = 11
-    local corner = Instance.new("UICorner", b)
-    corner.CornerRadius = UDim.new(0, 4)
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 4)
     b:SetAttribute("AccentColor", accentColor)
-    b.MouseEnter:Connect(function()
-        if b.BackgroundColor3 == btnColors.default then
-            b.BackgroundColor3 = btnColors.hover
-        end
-    end)
-    b.MouseLeave:Connect(function()
-        if b.BackgroundColor3 == btnColors.hover then
-            b.BackgroundColor3 = btnColors.default
-        end
-    end)
+    b.MouseEnter:Connect(function() if b.BackgroundColor3 == btnColors.default then b.BackgroundColor3 = btnColors.hover end end)
+    b.MouseLeave:Connect(function() if b.BackgroundColor3 == btnColors.hover then b.BackgroundColor3 = btnColors.default end end)
     return b
 end
 
-local Copy = mkBtn("Copy", "accentInfo", 0, 0.158)
-local Clear = mkBtn("Clear", "accentError", 0.168, 0.158)
-local Filter = mkBtn("Filter", "accentSuccess", 0.336, 0.158)
-local AutoScroll = mkBtn("Scroll", "accentNeutral", 0.504, 0.158)
-local ExportBtn = mkBtn("Export", "accentInfo", 0.672, 0.158)
-local ThemeBtn = mkBtn("Theme", "accentNeutral", 0.84, 0.158)
+local Copy = mkBtn(BtnFrame, "Copy", "accentInfo", 0, 0.158)
+local Clear = mkBtn(BtnFrame, "Clear", "accentError", 0.168, 0.158)
+local Filter = mkBtn(BtnFrame, "Filter", "accentSuccess", 0.336, 0.158)
+local AutoScroll = mkBtn(BtnFrame, "Scroll", "accentNeutral", 0.504, 0.158)
+local ExportBtn = mkBtn(BtnFrame, "Export", "accentInfo", 0.672, 0.158)
+local ThemeBtn = mkBtn(BtnFrame, "Theme", "accentNeutral", 0.84, 0.158)
 
--- Row 3: Advanced
 local AdvRow = Instance.new("Frame", MainFrame)
 AdvRow.Size = UDim2.new(0.96, 0, 0.05, 0)
 AdvRow.Position = UDim2.new(0.02, 0, 0.84, 0)
 AdvRow.BackgroundTransparency = 1
 
--- ASSIGN TO FORWARD DECLARED VARIABLES
-PinBtn = mkBtn("Pin", "accentWarn", 0, 0.158)
-PinBtn.Parent = AdvRow
+-- Fix: 4 Buttons at 25% Width each = 100% Span
+PinBtn = mkBtn(AdvRow, "Pin", "accentWarn", 0, 0.245)
+ExcludeBtn = mkBtn(AdvRow, "Exclude", "accentError", 0.252, 0.245)
+local HistoryBtn = mkBtn(AdvRow, "History", "accentSuccess", 0.504, 0.245)
+local Close = mkBtn(AdvRow, "Close", "accentError", 0.756, 0.245)
 
-ExcludeBtn = mkBtn("Exclude", "accentError", 0.168, 0.158)
-ExcludeBtn.Parent = AdvRow
-
-local HistoryBtn = mkBtn("History", "accentSuccess", 0.336, 0.158)
-HistoryBtn.Parent = AdvRow
-
-local Close = mkBtn("Close", "accentError", 0.504, 0.158)
-Close.Parent = AdvRow
-
---========================================
--- DYNAMIC BUTTON SCALING
---========================================
 local allButtons = {
     InfoBtn, WarnBtn, ErrorBtn, TimestampBtn, LineNumBtn, RegexBtn, FontBtn,
     Copy, Clear, Filter, AutoScroll, ExportBtn, ThemeBtn,
@@ -970,11 +802,9 @@ local allButtons = {
 
 local function updateButtonSizes(width)
     local textSize = (width >= 500) and 11 or (width >= 400 and 9 or 7)
-    for _, btn in ipairs(allButtons) do
-        btn.TextSize = textSize
-    end
-    StatsBar.TextSize = math.max(10, textSize + 2)
+    for _, btn in ipairs(allButtons) do btn.TextSize = textSize end
     TitleBar.TextSize = math.max(12, textSize + 4)
+    -- StatsBar TextSize handled in RenderStepped now
 end
 
 updateButtonSizes(MainFrame.AbsoluteSize.X)
@@ -999,62 +829,18 @@ end)
 
 local function setButtonActive(button, isActive)
     local accentName = button:GetAttribute("AccentColor")
-    if isActive then
-        button.BackgroundColor3 = btnColors[accentName] or btnColors.active
-    else
-        button.BackgroundColor3 = btnColors.default
-    end
+    if isActive then button.BackgroundColor3 = btnColors[accentName] or btnColors.active
+    else button.BackgroundColor3 = btnColors.default end
 end
 
-InfoBtn.MouseButton1Click:Connect(function()
-    typeFilters.INFO = not typeFilters.INFO
-    setButtonActive(InfoBtn, typeFilters.INFO)
-    refreshVirtualScroll()
-end)
-
-WarnBtn.MouseButton1Click:Connect(function()
-    typeFilters.WARN = not typeFilters.WARN
-    setButtonActive(WarnBtn, typeFilters.WARN)
-    refreshVirtualScroll()
-end)
-
-ErrorBtn.MouseButton1Click:Connect(function()
-    typeFilters.ERROR = not typeFilters.ERROR
-    setButtonActive(ErrorBtn, typeFilters.ERROR)
-    refreshVirtualScroll()
-end)
-
-TimestampBtn.MouseButton1Click:Connect(function()
-    showTimestamps = not showTimestamps
-    setButtonActive(TimestampBtn, showTimestamps)
-    refreshVirtualScroll()
-end)
-
-LineNumBtn.MouseButton1Click:Connect(function()
-    showLineNumbers = not showLineNumbers
-    setButtonActive(LineNumBtn, showLineNumbers)
-    refreshVirtualScroll()
-end)
-
-RegexBtn.MouseButton1Click:Connect(function()
-    useRegex = not useRegex
-    setButtonActive(RegexBtn, useRegex)
-    SearchBox.PlaceholderText = useRegex and "Search logs... (Regex: ON)" or "Search logs... (Regex: OFF)"
-    refreshVirtualScroll()
-end)
-
-FontBtn.MouseButton1Click:Connect(function()
-    fontSize = fontSize + 2
-    if fontSize > 18 then fontSize = 10 end
-    FontBtn.Text = "A" .. fontSize
-    refreshVirtualScroll()
-end)
-
-Filter.MouseButton1Click:Connect(function()
-    isFilterActive = not isFilterActive
-    setButtonActive(Filter, isFilterActive)
-    refreshVirtualScroll()
-end)
+InfoBtn.MouseButton1Click:Connect(function() typeFilters.INFO = not typeFilters.INFO; setButtonActive(InfoBtn, typeFilters.INFO); refreshVirtualScroll() end)
+WarnBtn.MouseButton1Click:Connect(function() typeFilters.WARN = not typeFilters.WARN; setButtonActive(WarnBtn, typeFilters.WARN); refreshVirtualScroll() end)
+ErrorBtn.MouseButton1Click:Connect(function() typeFilters.ERROR = not typeFilters.ERROR; setButtonActive(ErrorBtn, typeFilters.ERROR); refreshVirtualScroll() end)
+TimestampBtn.MouseButton1Click:Connect(function() showTimestamps = not showTimestamps; setButtonActive(TimestampBtn, showTimestamps); refreshVirtualScroll() end)
+LineNumBtn.MouseButton1Click:Connect(function() showLineNumbers = not showLineNumbers; setButtonActive(LineNumBtn, showLineNumbers); refreshVirtualScroll() end)
+RegexBtn.MouseButton1Click:Connect(function() useRegex = not useRegex; setButtonActive(RegexBtn, useRegex); SearchBox.PlaceholderText = useRegex and "Search... (Regex)" or "Search logs..."; refreshVirtualScroll() end)
+FontBtn.MouseButton1Click:Connect(function() fontSize = fontSize + 2; if fontSize > 18 then fontSize = 10 end; FontBtn.Text = "A" .. fontSize; refreshVirtualScroll() end)
+Filter.MouseButton1Click:Connect(function() isFilterActive = not isFilterActive; setButtonActive(Filter, isFilterActive); refreshVirtualScroll() end)
 
 AutoScroll.MouseButton1Click:Connect(function()
     autoScrollEnabled = not autoScrollEnabled
@@ -1080,13 +866,7 @@ end)
 
 Copy.MouseButton1Click:Connect(function()
     local txt = table.concat(logHistory, "\n")
-    pcall(function()
-        if setclipboard then
-            setclipboard(txt)
-        elseif toclipboard then
-            toclipboard(txt)
-        end
-    end)
+    pcall(function() if setclipboard then setclipboard(txt) elseif toclipboard then toclipboard(txt) end end)
     Copy.Text = "✓"
     Copy.BackgroundColor3 = btnColors.accentSuccess
     task.wait(1)
@@ -1094,12 +874,10 @@ Copy.MouseButton1Click:Connect(function()
     Copy.BackgroundColor3 = btnColors.default
 end)
 
--- Export Menu
 local exportMenuOpen = false
 ExportBtn.MouseButton1Click:Connect(function()
     if exportMenuOpen then return end
     exportMenuOpen = true
-    
     local menu = Instance.new("Frame")
     menu.Size = UDim2.new(0.2, 0, 0.15, 0)
     menu.Position = UDim2.new(0.64, 0, 0.63, 0)
@@ -1108,7 +886,6 @@ ExportBtn.MouseButton1Click:Connect(function()
     menu.ZIndex = 100
     menu.Parent = MainFrame
     Instance.new("UICorner", menu)
-
     local function mkExportBtn(txt, y, callback)
         local b = Instance.new("TextButton")
         b.Size = UDim2.new(0.9, 0, 0.28, 0)
@@ -1121,28 +898,17 @@ ExportBtn.MouseButton1Click:Connect(function()
         b.ZIndex = 101
         b.Parent = menu
         Instance.new("UICorner", b)
-        b.MouseButton1Click:Connect(function()
-            callback()
-            menu:Destroy()
-            exportMenuOpen = false
-        end)
+        b.MouseButton1Click:Connect(function() callback(); menu:Destroy(); exportMenuOpen = false end)
     end
-
     mkExportBtn(".txt", 0.05, function() saveLog("=== EXPORT ===") ExportBtn.Text = "✓ TXT" end)
     mkExportBtn(".json", 0.36, function() exportToJSON() ExportBtn.Text = "✓ JSON" end)
     mkExportBtn(".csv", 0.67, function() exportToCSV() ExportBtn.Text = "✓ CSV" end)
-    
     task.wait(1)
     ExportBtn.Text = "Export"
-    
     task.wait(4)
-    if menu.Parent then
-        menu:Destroy()
-        exportMenuOpen = false
-    end
+    if menu.Parent then menu:Destroy(); exportMenuOpen = false end
 end)
 
--- Theme Switcher
 local function applyTheme(themeName)
     local theme = themes[themeName] or themes.dark
     MainFrame.BackgroundColor3 = theme.bg
@@ -1157,7 +923,6 @@ local themeMenuOpen = false
 ThemeBtn.MouseButton1Click:Connect(function()
     if themeMenuOpen then return end
     themeMenuOpen = true
-    
     local menu = Instance.new("Frame")
     menu.Size = UDim2.new(0.15, 0, 0.15, 0)
     menu.Position = UDim2.new(0.8, 0, 0.63, 0)
@@ -1166,7 +931,6 @@ ThemeBtn.MouseButton1Click:Connect(function()
     menu.ZIndex = 100
     menu.Parent = MainFrame
     Instance.new("UICorner", menu)
-
     local function mkThemeBtn(txt, y, themeName)
         local b = Instance.new("TextButton")
         b.Size = UDim2.new(0.9, 0, 0.28, 0)
@@ -1179,45 +943,26 @@ ThemeBtn.MouseButton1Click:Connect(function()
         b.ZIndex = 101
         b.Parent = menu
         Instance.new("UICorner", b)
-        b.MouseButton1Click:Connect(function()
-            applyTheme(themeName)
-            menu:Destroy()
-            themeMenuOpen = false
-        end)
+        b.MouseButton1Click:Connect(function() applyTheme(themeName); menu:Destroy(); themeMenuOpen = false end)
     end
-
     mkThemeBtn("Dark", 0.05, "dark")
     mkThemeBtn("Light", 0.36, "light")
     mkThemeBtn("Blue", 0.67, "blue")
-
     task.wait(5)
-    if menu.Parent then
-        menu:Destroy()
-        themeMenuOpen = false
-    end
+    if menu.Parent then menu:Destroy(); themeMenuOpen = false end
 end)
 
 PinBtn.MouseButton1Click:Connect(function()
     local term = SearchBox.Text
     if term == "" then return end
-    
     local alreadyPinned = table.find(pinnedSearchTerms, term)
-    if alreadyPinned then
-        table.remove(pinnedSearchTerms, alreadyPinned)
-        PinBtn.Text = "Unpinned"
-    else
-        table.insert(pinnedSearchTerms, term)
-        PinBtn.Text = "Pinned!"
-    end
-    
+    if alreadyPinned then table.remove(pinnedSearchTerms, alreadyPinned); PinBtn.Text = "Unpinned"
+    else table.insert(pinnedSearchTerms, term); PinBtn.Text = "Pinned!" end
     pcall(function()
         for _, logData in ipairs(virtualLogData) do
-            if logData and logData.message then
-                logData.isPinned = isPinned(logData.message)
-            end
+            if logData and logData.message then logData.isPinned = isPinned(logData.message) end
         end
     end)
-    
     refreshVirtualScroll()
     task.wait(1.5)
     PinBtn.Text = "Pin"
@@ -1239,6 +984,8 @@ ExcludeBtn.MouseButton1Click:Connect(function()
         menu.BorderSizePixel = 0
         menu.ZIndex = 100
         menu.Parent = MainFrame
+        menu.AutomaticCanvasSize = Enum.AutomaticSize.Y -- Fix: Ensures content renders
+        menu.CanvasSize = UDim2.new(0, 0, 0, 0)
         Instance.new("UICorner", menu)
         
         local layout = Instance.new("UIListLayout", menu)
@@ -1250,6 +997,7 @@ ExcludeBtn.MouseButton1Click:Connect(function()
             item.Size = UDim2.new(1, -10, 0, 28)
             item.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
             item.Parent = menu
+            item.LayoutOrder = i
             Instance.new("UICorner", item)
             
             local label = Instance.new("TextLabel")
@@ -1281,15 +1029,12 @@ ExcludeBtn.MouseButton1Click:Connect(function()
             end)
         end
         
-        RunService.Heartbeat:Wait()
-        menu.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
         task.wait(10)
-        if menu.Parent then menu:Destroy() excludeMenuOpen = false end
+        if menu.Parent then menu:Destroy(); excludeMenuOpen = false end
         return
     end
     
     if table.find(excludePatterns, term) then return end
-    
     table.insert(excludePatterns, term)
     ExcludeBtn.Text = "✓ Added"
     refreshVirtualScroll()
@@ -1310,6 +1055,8 @@ HistoryBtn.MouseButton1Click:Connect(function()
     menu.BorderSizePixel = 0
     menu.ZIndex = 100
     menu.Parent = MainFrame
+    menu.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    menu.CanvasSize = UDim2.new(0, 0, 0, 0)
     Instance.new("UICorner", menu)
     
     local layout = Instance.new("UIListLayout", menu)
@@ -1326,26 +1073,15 @@ HistoryBtn.MouseButton1Click:Connect(function()
         b.TextXAlignment = Enum.TextXAlignment.Left
         b.Parent = menu
         Instance.new("UICorner", b)
-        b.MouseButton1Click:Connect(function()
-            SearchBox.Text = term
-            menu:Destroy()
-            historyMenuOpen = false
-        end)
+        b.MouseButton1Click:Connect(function() SearchBox.Text = term; menu:Destroy(); historyMenuOpen = false end)
     end
     
-    RunService.Heartbeat:Wait()
-    menu.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
     task.wait(8)
-    if menu.Parent then menu:Destroy() historyMenuOpen = false end
+    if menu.Parent then menu:Destroy(); historyMenuOpen = false end
 end)
 
-Close.MouseButton1Click:Connect(function()
-    MainFrame.Visible = false
-end)
+Close.MouseButton1Click:Connect(function() MainFrame.Visible = false end)
 
---========================================
--- INITIAL SETUP
---========================================
 refreshVirtualScroll()
 setButtonActive(InfoBtn, typeFilters.INFO)
 setButtonActive(WarnBtn, typeFilters.WARN)
