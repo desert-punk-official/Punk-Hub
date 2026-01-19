@@ -1,5 +1,5 @@
 --========================================
--- Punk X Debugger (Alignment & Layout Fix)
+-- Punk X Debugger (Scrollable Exclude + Toggle Fix)
 -- COMPLETE CODE - READY TO USE
 --========================================
 
@@ -211,10 +211,10 @@ Instance.new("UICorner", SearchBox).CornerRadius = UDim.new(0, 6)
 local SearchPadding = Instance.new("UIPadding", SearchBox)
 SearchPadding.PaddingLeft = UDim.new(0, 8)
 
--- Scroll Frame (Adjusted Height)
+-- Scroll Frame
 local ScrollFrame = Instance.new("ScrollingFrame")
 ScrollFrame.Position = UDim2.new(0.02, 0, 0.19, 0)
-ScrollFrame.Size = UDim2.new(0.96, 0, 0.51, 0) -- Reduced height to leave room for buttons
+ScrollFrame.Size = UDim2.new(0.96, 0, 0.51, 0)
 ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 ScrollFrame.ScrollBarThickness = 4
 ScrollFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
@@ -225,7 +225,7 @@ local UIListLayout = Instance.new("UIListLayout")
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 UIListLayout.Parent = ScrollFrame
 
--- Resize Handle (Visible now)
+-- Resize Handle
 local ResizeHandle = Instance.new("TextButton")
 ResizeHandle.Size = UDim2.new(0, 30, 0, 30)
 ResizeHandle.Position = UDim2.new(1, -30, 1, -30)
@@ -402,7 +402,7 @@ function refreshVirtualScroll()
             Instance.new("UICorner", actionBar).CornerRadius = UDim.new(0, 4)
             local function mkActionBtn(txt, icon, x, callback)
                 local b = Instance.new("TextButton")
-                b.Size = UDim2.new(0.25, 0, 1, 0) -- FULL WIDTH
+                b.Size = UDim2.new(0.25, 0, 1, 0)
                 b.Position = UDim2.new(x, 0, 0, 0)
                 b.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
                 b.BackgroundTransparency = 1
@@ -450,7 +450,6 @@ LogService.MessageOut:Connect(addLog)
 -- Buttons
 local btnColors = { default = Color3.fromRGB(45, 45, 45), hover = Color3.fromRGB(60, 60, 60), active = Color3.fromRGB(70, 70, 70), accentInfo = Color3.fromRGB(70, 130, 220), accentWarn = Color3.fromRGB(220, 160, 50), accentError = Color3.fromRGB(220, 70, 70), accentSuccess = Color3.fromRGB(70, 180, 90), accentNeutral = Color3.fromRGB(100, 100, 100) }
 
--- REVERTED LAYOUT POSITIONS (To prevent Resize Handle Overlap)
 local FilterRow = Instance.new("Frame", MainFrame); FilterRow.Size = UDim2.new(0.96, 0, 0.05, 0); FilterRow.Position = UDim2.new(0.02, 0, 0.71, 0); FilterRow.BackgroundTransparency = 1
 local BtnFrame = Instance.new("Frame", MainFrame); BtnFrame.Size = UDim2.new(0.96, 0, 0.05, 0); BtnFrame.Position = UDim2.new(0.02, 0, 0.78, 0); BtnFrame.BackgroundTransparency = 1
 local AdvRow = Instance.new("Frame", MainFrame); AdvRow.Size = UDim2.new(0.96, 0, 0.05, 0); AdvRow.Position = UDim2.new(0.02, 0, 0.85, 0); AdvRow.BackgroundTransparency = 1
@@ -462,29 +461,25 @@ local function mkBtn(parent, txt, accent, x, w)
     return b
 end
 
--- FIXED COLUMN ALIGNMENT: Calculated so rightmost buttons (A14, Theme, Close) align at 1.0 (100%)
--- Row 1: 3x0.16 (0.48) + 4x0.13 (0.52) = 1.0
 local InfoBtn = mkBtn(FilterRow, "INFO", "accentInfo", 0, 0.16)
 local WarnBtn = mkBtn(FilterRow, "WARN", "accentWarn", 0.16, 0.16)
 local ErrorBtn = mkBtn(FilterRow, "ERROR", "accentError", 0.32, 0.16)
 local TimestampBtn = mkBtn(FilterRow, "Time", "accentNeutral", 0.48, 0.13)
 local LineNumBtn = mkBtn(FilterRow, "Line", "accentNeutral", 0.61, 0.13)
 local RegexBtn = mkBtn(FilterRow, "Regex", "accentNeutral", 0.74, 0.13)
-local FontBtn = mkBtn(FilterRow, "A"..fontSize, "accentNeutral", 0.87, 0.13) -- Ends at 1.0
+local FontBtn = mkBtn(FilterRow, "A"..fontSize, "accentNeutral", 0.87, 0.13)
 
--- Row 2: 6 buttons. 1/6 = 0.1666...
 local Copy = mkBtn(BtnFrame, "Copy", "accentInfo", 0, 0.166)
 local Clear = mkBtn(BtnFrame, "Clear", "accentError", 0.166, 0.166)
 local Filter = mkBtn(BtnFrame, "Filter", "accentSuccess", 0.333, 0.166)
 local AutoScroll = mkBtn(BtnFrame, "Scroll", "accentNeutral", 0.500, 0.166)
 local ExportBtn = mkBtn(BtnFrame, "Export", "accentInfo", 0.666, 0.166)
-local ThemeBtn = mkBtn(BtnFrame, "Theme", "accentNeutral", 0.833, 0.166) -- Ends at 1.0
+local ThemeBtn = mkBtn(BtnFrame, "Theme", "accentNeutral", 0.833, 0.166)
 
--- Row 3: 4 buttons. 0.25 each.
 PinBtn = mkBtn(AdvRow, "Pin", "accentWarn", 0, 0.25)
 ExcludeBtn = mkBtn(AdvRow, "Exclude", "accentError", 0.25, 0.25)
 local HistoryBtn = mkBtn(AdvRow, "History", "accentSuccess", 0.50, 0.25)
-local Close = mkBtn(AdvRow, "Close", "accentError", 0.75, 0.25) -- Ends at 1.0
+local Close = mkBtn(AdvRow, "Close", "accentError", 0.75, 0.25)
 
 local allButtons = { InfoBtn, WarnBtn, ErrorBtn, TimestampBtn, LineNumBtn, RegexBtn, FontBtn, Copy, Clear, Filter, AutoScroll, ExportBtn, ThemeBtn, PinBtn, ExcludeBtn, HistoryBtn, Close }
 local function updateButtonSizes(w) local s = (w >= 500) and 11 or (w >= 400 and 9 or 7); for _, b in ipairs(allButtons) do b.TextSize = s end; TitleBar.TextSize = math.max(12, s + 4) end
@@ -506,38 +501,112 @@ Copy.MouseButton1Click:Connect(function() local t=table.concat(logHistory,"\n");
 PinBtn.MouseButton1Click:Connect(function() local t=SearchBox.Text; if t=="" then return end; local f=table.find(pinnedSearchTerms,t); if f then table.remove(pinnedSearchTerms,f); PinBtn.Text="Unpinned" else table.insert(pinnedSearchTerms,t); PinBtn.Text="Pinned!" end; pcall(function() for _,l in ipairs(virtualLogData) do l.isPinned=isPinned(l.message) end end); refreshVirtualScroll(); task.wait(1.5); PinBtn.Text="Pin" end)
 Close.MouseButton1Click:Connect(function() MainFrame.Visible = false end)
 
--- Fixed Exclude Menu X Button (Touch Right Edge)
+-- Fixed Exclude Menu (Toggle + Scroll + Style Revert)
 local excludeMenuOpen = false
+local excludeMenuRef = nil
+
 ExcludeBtn.MouseButton1Click:Connect(function()
-    local t = SearchBox.Text
-    if t == "" then
-        if excludeMenuOpen then return end
-        if #excludePatterns == 0 then return end
-        excludeMenuOpen = true
-        local m = Instance.new("ScrollingFrame", MainFrame); m.Size = UDim2.new(0.35, 0, 0.3, 0); m.Position = UDim2.new(0.168, 0, 0.52, 0); m.BackgroundColor3 = Color3.fromRGB(40, 40, 40); m.BorderSizePixel = 0; m.ZIndex = 200; m.AutomaticCanvasSize = Enum.AutomaticSize.Y; m.CanvasSize = UDim2.new(0, 0, 0, 0); Instance.new("UICorner", m)
-        local l = Instance.new("UIListLayout", m); l.SortOrder = Enum.SortOrder.LayoutOrder; l.Padding = UDim.new(0, 2)
-        for i, p in ipairs(excludePatterns) do
-            local f = Instance.new("Frame", m); f.Size = UDim2.new(1, -10, 0, 28); f.BackgroundColor3 = Color3.fromRGB(50, 50, 50); f.ZIndex = 201; Instance.new("UICorner", f)
-            local txt = Instance.new("TextLabel", f); txt.Size = UDim2.new(0.8, 0, 1, 0); txt.Position = UDim2.new(0, 5, 0, 0); txt.BackgroundTransparency = 1; txt.Text = p; txt.TextColor3 = Color3.new(1, 1, 1); txt.Font = Enum.Font.Gotham; txt.TextSize = 10; txt.TextXAlignment = Enum.TextXAlignment.Left; txt.ZIndex = 202
-            
-            -- FIX: Button touches right edge using AnchorPoint
-            local btn = Instance.new("TextButton", f); 
-            btn.Size = UDim2.new(0, 30, 0, 20); 
-            btn.AnchorPoint = Vector2.new(1, 0.5); 
-            btn.Position = UDim2.new(1, 0, 0.5, 0); 
-            btn.BackgroundColor3 = btnColors.accentError; 
-            btn.Text = "X"; 
-            btn.TextColor3 = Color3.new(1, 1, 1); 
-            btn.ZIndex = 202; 
-            Instance.new("UICorner", btn)
-            
-            btn.MouseButton1Click:Connect(function() table.remove(excludePatterns, i); ExcludeBtn.Text = (#excludePatterns>0) and "Exclude ("..#excludePatterns..")" or "Exclude"; m:Destroy(); excludeMenuOpen=false; refreshVirtualScroll() end)
-        end
-        task.wait(10); if m.Parent then m:Destroy(); excludeMenuOpen = false end
+    -- TOGGLE FIX: If menu exists, close it and return
+    if excludeMenuOpen then
+        if excludeMenuRef and excludeMenuRef.Parent then excludeMenuRef:Destroy() end
+        excludeMenuOpen = false
+        excludeMenuRef = nil
         return
     end
+
+    local t = SearchBox.Text
+    
+    -- If text empty, show menu
+    if t == "" then
+        if #excludePatterns == 0 then return end
+        
+        excludeMenuOpen = true
+        
+        local m = Instance.new("ScrollingFrame", MainFrame)
+        excludeMenuRef = m
+        m.Size = UDim2.new(0.35, 0, 0.3, 0)
+        m.Position = UDim2.new(0.168, 0, 0.52, 0)
+        m.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        m.BorderSizePixel = 0
+        m.ZIndex = 200
+        m.AutomaticCanvasSize = Enum.AutomaticSize.Y
+        m.CanvasSize = UDim2.new(0, 0, 0, 0)
+        Instance.new("UICorner", m)
+        
+        local l = Instance.new("UIListLayout", m)
+        l.SortOrder = Enum.SortOrder.LayoutOrder
+        l.Padding = UDim.new(0, 2)
+        
+        for i, p in ipairs(excludePatterns) do
+            -- Container Frame (Width 1.0 to touch borders)
+            local f = Instance.new("Frame", m)
+            f.Size = UDim2.new(1, -6, 0, 30) -- Padding 6px for scrollbar space
+            f.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+            f.ZIndex = 201
+            f.LayoutOrder = i
+            Instance.new("UICorner", f)
+            
+            -- X Button (Fixed Right - Red Rounded Square)
+            local btn = Instance.new("TextButton", f)
+            btn.Size = UDim2.new(0, 24, 0, 24)
+            btn.AnchorPoint = Vector2.new(1, 0.5)
+            btn.Position = UDim2.new(1, -4, 0.5, 0)
+            btn.BackgroundColor3 = btnColors.accentError
+            btn.Text = "X"
+            btn.TextColor3 = Color3.new(1, 1, 1)
+            btn.Font = Enum.Font.GothamBold
+            btn.TextSize = 10
+            btn.ZIndex = 203 -- Above text scroll
+            Instance.new("UICorner", btn)
+            
+            btn.MouseButton1Click:Connect(function()
+                table.remove(excludePatterns, i)
+                ExcludeBtn.Text = (#excludePatterns>0) and "Exclude ("..#excludePatterns..")" or "Exclude"
+                if m.Parent then m:Destroy() end
+                excludeMenuOpen=false
+                refreshVirtualScroll()
+            end)
+            
+            -- Horizontal Scrolling Text (Fills left space)
+            local scrollText = Instance.new("ScrollingFrame", f)
+            scrollText.Size = UDim2.new(1, -35, 1, 0) -- Leave space for button
+            scrollText.BackgroundTransparency = 1
+            scrollText.ScrollingDirection = Enum.ScrollingDirection.X
+            scrollText.CanvasSize = UDim2.new(0, 0, 0, 0)
+            scrollText.AutomaticCanvasSize = Enum.AutomaticSize.X
+            scrollText.ScrollBarThickness = 2
+            scrollText.ZIndex = 202
+            
+            local txt = Instance.new("TextLabel", scrollText)
+            txt.Size = UDim2.new(0, 0, 1, 0)
+            txt.AutomaticSize = Enum.AutomaticSize.X
+            txt.BackgroundTransparency = 1
+            txt.Text = "  " .. p
+            txt.TextColor3 = Color3.new(1, 1, 1)
+            txt.Font = Enum.Font.Gotham
+            txt.TextSize = 10
+            txt.TextXAlignment = Enum.TextXAlignment.Left
+            txt.ZIndex = 202
+        end
+        
+        -- Auto-close timer
+        task.delay(10, function()
+            if m and m.Parent then
+                m:Destroy()
+                if excludeMenuRef == m then excludeMenuOpen = false end
+            end
+        end)
+        
+        return
+    end
+    
+    -- If text exists, add exclusion
     if table.find(excludePatterns, t) then return end
-    table.insert(excludePatterns, t); ExcludeBtn.Text = "✓ Added"; refreshVirtualScroll(); task.wait(1.5); ExcludeBtn.Text = "Exclude ("..#excludePatterns..")"
+    table.insert(excludePatterns, t)
+    ExcludeBtn.Text = "✓ Added"
+    refreshVirtualScroll()
+    task.wait(1.5)
+    ExcludeBtn.Text = "Exclude ("..#excludePatterns..")"
 end)
 
 -- Init
