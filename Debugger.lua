@@ -1,5 +1,5 @@
 --========================================
--- Punk X Debugger - SESSION 2 FIXED
+-- Punk X Debugger
 -- COMPLETE CODE - READY TO USE
 --========================================
 
@@ -34,6 +34,8 @@ local currentTheme = "dark"
 local fontSize = 14
 local useRegex = false
 local searchHistory = {}
+local selectedLogKey = nil -- 🆕 For individual log selection
+local actionBarVisible = false -- 🆕 Track action bar state
 
 -- Type filters
 local typeFilters = {
@@ -547,7 +549,7 @@ local function addLog(message, messageType)
 end
 
 --========================================
--- VIRTUAL SCROLL REFRESH
+-- VIRTUAL SCROLL REFRESH (WITH ACTION BAR)
 --========================================
 
 function refreshVirtualScroll()
@@ -574,6 +576,11 @@ function refreshVirtualScroll()
                 show = false
             end
             
+            -- 🔧 FIX: Check exclusions
+            if show and isExcluded(logData.message) then
+                show = false
+            end
+            
             if show and term ~= "" then
                 if useRegex then
                     local success = pcall(function()
@@ -596,7 +603,7 @@ function refreshVirtualScroll()
     
     -- Clear existing labels
     for _, child in ipairs(ScrollFrame:GetChildren()) do
-        if child:IsA("TextLabel") or child:IsA("TextButton") then
+        if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("Frame") then
             child:Destroy()
         end
     end
@@ -604,7 +611,7 @@ function refreshVirtualScroll()
     -- Create labels
     for i, logData in ipairs(visibleLogs) do
         local isGrouped = logData.count > 1
-        local element = isGrouped and Instance.new("TextButton") or Instance.new("TextLabel")
+        local element = Instance.new("TextButton") -- 🆕 Always TextButton for click support
         
         element.Size = UDim2.new(1, 0, 0, 0)
         element.AutomaticSize = Enum.AutomaticSize.Y
@@ -653,10 +660,93 @@ function refreshVirtualScroll()
         local theme = themes[currentTheme]
         element.BackgroundColor3 = (i % 2 == 0) and theme.logBg2 or theme.logBg1
         
-        if isGrouped and element:IsA("TextButton") then
-            element.MouseButton1Click:Connect(function()
-                expandedGroups[logData.key] = not expandedGroups[logData.key]
+        -- 🆕 HYBRID SYSTEM: Click handler
+        element.MouseButton1Click:Connect(function()
+            if isGrouped and expandedGroups[logData.key] then
+                -- If already expanded, toggle collapse
+                expandedGroups[logData.key] = false
                 refreshVirtualScroll()
+            elseif isGrouped then
+                -- Expand grouped log
+                expandedGroups[logData.key] = true
+                refreshVirtualScroll()
+            else
+                -- Show action bar for non-grouped or already expanded
+                selectedLogKey = logData.key
+                actionBarVisible = true
+                refreshVirtualScroll()
+            end
+        end)
+        
+        -- 🆕 Show action bar if this log is selected
+        if selectedLogKey == logData.key and actionBarVisible then
+            local actionBar = Instance.new("Frame")
+            actionBar.Size = UDim2.new(1, 0, 0, 35)
+            actionBar.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+            actionBar.BorderSizePixel = 0
+            actionBar.Parent = ScrollFrame
+            Instance.new("UICorner", actionBar).CornerRadius = UDim.new(0, 4)
+            
+            local function mkActionBtn(txt, icon, x, callback)
+                local b = Instance.new("TextButton")
+                b.Size = UDim2.new(0.24, -4, 0.8, 0)
+                b.Position = UDim2.new(x, 0, 0.1, 0)
+                b.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
+                b.Text = icon .. " " .. txt
+                b.TextColor3 = Color3.new(1, 1, 1)
+                b.Font = Enum.Font.GothamBold
+                b.TextSize = 10
+                b.Parent = actionBar
+                Instance.new("UICorner", b).CornerRadius = UDim.new(0, 4)
+                
+                b.MouseButton1Click:Connect(function()
+                    callback()
+                    selectedLogKey = nil
+                    actionBarVisible = false
+                    refreshVirtualScroll()
+                end)
+                
+                return b
+            end
+            
+            mkActionBtn("Pin", "📌", 0.02, function()
+                -- Pin this exact message
+                local pattern = logData.message
+                if not table.find(pinnedSearchTerms, pattern) then
+                    table.insert(pinnedSearchTerms, pattern)
+                end
+                -- Update all logs with this message
+                for _, log in ipairs(virtualLogData) do
+                    if log.message == logData.message then
+                        log.isPinned = true
+                    end
+                end
+            end)
+            
+            mkActionBtn("Exclude", "🚫", 0.27, function()
+                -- Exclude this exact message
+                local pattern = logData.message
+                if not table.find(excludePatterns, pattern) then
+                    table.insert(excludePatterns, pattern)
+                    if #excludePatterns > 0 then
+                        ExcludeBtn.Text = "Exclude (" .. #excludePatterns .. ")"
+                    end
+                end
+            end)
+            
+            mkActionBtn("Copy", "📋", 0.52, function()
+                local txt = logData.full
+                pcall(function()
+                    if setclipboard then
+                        setclipboard(txt)
+                    elseif toclipboard then
+                        toclipboard(txt)
+                    end
+                end)
+            end)
+            
+            mkActionBtn("Close", "✕", 0.77, function()
+                -- Just close the action bar
             end)
         end
         
@@ -1234,12 +1324,12 @@ ExcludeBtn.MouseButton1Click:Connect(function()
             label.ZIndex = 102
             label.Parent = item
             
-            -- Remove button
+            -- Remove button (🔧 FIXED: Changed to X)
             local removeBtn = Instance.new("TextButton")
             removeBtn.Size = UDim2.new(0, 25, 0, 20)
             removeBtn.Position = UDim2.new(1, -30, 0.5, -10)
             removeBtn.BackgroundColor3 = btnColors.accentError
-            removeBtn.Text = "✕"
+            removeBtn.Text = "X" -- 🔧 FIXED: Changed from ✕ to X
             removeBtn.TextColor3 = Color3.new(1, 1, 1)
             removeBtn.Font = Enum.Font.GothamBold
             removeBtn.TextSize = 12
@@ -1404,7 +1494,6 @@ setButtonActive(TimestampBtn, showTimestamps)
 setButtonActive(LineNumBtn, showLineNumbers)
 setButtonActive(RegexBtn, useRegex)
 setButtonActive(Filter, isFilterActive)
-
 
 print("Punk X Debugger")
 print("🎮 Ready to debug!")
