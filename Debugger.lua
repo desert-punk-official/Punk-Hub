@@ -42,6 +42,7 @@ local searchHistory = {}
 local selectedLogKey = nil
 local actionBarVisible = false
 local currentHighlights = {}
+local highlightConnections = {} -- Stores events for auto-updating
 local isHighlighting = false
 
 -- Type filters
@@ -152,7 +153,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Draggable
+-- Main Frame Drag
 local dragging, dragInput, dragStart, startPos
 local function updateDrag(input)
     local delta = input.Position - dragStart
@@ -236,6 +237,23 @@ ToggleButton.ScaleType = Enum.ScaleType.Fit
 ToggleButton.Parent = ScreenGui
 Instance.new("UICorner", ToggleButton).CornerRadius = UDim.new(1, 0)
 ToggleButton.MouseButton1Click:Connect(function() MainFrame.Visible = not MainFrame.Visible end)
+
+-- TOGGLE DRAG LOGIC (Restored)
+local toggleDragging, toggleDragStart, toggleStartPos
+ToggleButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        toggleDragging = true
+        toggleDragStart = input.Position
+        toggleStartPos = ToggleButton.Position
+        input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then toggleDragging = false end end)
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if toggleDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - toggleDragStart
+        ToggleButton.Position = UDim2.new(toggleStartPos.X.Scale, toggleStartPos.X.Offset + delta.X, toggleStartPos.Y.Scale, toggleStartPos.Y.Offset + delta.Y)
+    end
+end)
 
 -- Helpers
 local function sanitize(t) return t:gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;") end
@@ -429,43 +447,61 @@ Copy.MouseButton1Click:Connect(function() local t=table.concat(logHistory,"\n");
 PinBtn.MouseButton1Click:Connect(function() local t=SearchBox.Text; if t=="" then return end; local f=table.find(pinnedSearchTerms,t); if f then table.remove(pinnedSearchTerms,f); PinBtn.Text="Unpinned" else table.insert(pinnedSearchTerms,t); PinBtn.Text="Pinned!" end; pcall(function() for _,l in ipairs(virtualLogData) do l.isPinned=isPinned(l.message) end end); refreshVirtualScroll(); task.wait(1.5); PinBtn.Text="Pin" end)
 Close.MouseButton1Click:Connect(function() MainFrame.Visible = false end)
 
--- FIXED HIGHLIGHTER
+-- FIXED DYNAMIC HIGHLIGHTER
+local function addHighlight(obj)
+    if #currentHighlights >= 30 then return end
+    local h = Instance.new("Highlight")
+    h.Adornee = obj
+    h.FillColor = Color3.fromRGB(255, 255, 0)
+    h.OutlineColor = Color3.fromRGB(255, 255, 255)
+    h.FillTransparency = 0.5
+    h.Parent = obj
+    table.insert(currentHighlights, h)
+    HighlightBtn.Text = "✓"..#currentHighlights
+end
+
 HighlightBtn.MouseButton1Click:Connect(function()
+    -- Reset
     for _, h in ipairs(currentHighlights) do h:Destroy() end; currentHighlights = {}
+    for _, c in ipairs(highlightConnections) do c:Disconnect() end; highlightConnections = {}
+    
     if isHighlighting then isHighlighting = false; HighlightBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50); HighlightBtn.Text="👁️"; return end
     local term = SearchBox.Text; if term == "" then return end
-    isHighlighting = true; HighlightBtn.BackgroundColor3 = btnColors.accentWarn
-    local count = 0
     
-    -- FIXED LOGIC: Detect "players" keyword or highlight visible Parents
+    isHighlighting = true; HighlightBtn.BackgroundColor3 = btnColors.accentWarn
+    
     if term:lower() == "players" then
-        for _, p in ipairs(Players:GetPlayers()) do
-            if p.Character then
-                local h = Instance.new("Highlight", p.Character)
-                h.FillColor = Color3.fromRGB(255, 255, 0); h.OutlineColor = Color3.fromRGB(255, 255, 255); h.FillTransparency=0.5
-                table.insert(currentHighlights, h)
-                count = count + 1
-            end
+        -- Players Mode
+        local function setupChar(char) if char then addHighlight(char) end end
+        local function setupPlayer(p)
+            if p.Character then setupChar(p.Character) end
+            local c = p.CharacterAdded:Connect(setupChar)
+            table.insert(highlightConnections, c)
         end
+        for _, p in ipairs(Players:GetPlayers()) do setupPlayer(p) end
+        local c = Players.PlayerAdded:Connect(setupPlayer)
+        table.insert(highlightConnections, c)
     else
+        -- Parts Mode (Search & Listen)
+        -- Initial Scan
         for _, v in ipairs(workspace:GetDescendants()) do
-            if count >= 30 then break end
-            if v.Name:lower():find(term:lower(), 1, true) then
-                -- VISIBILITY FIX: If it's a known invisible part, highlight the Parent (Model)
+            if (v:IsA("BasePart") or v:IsA("Model")) and v.Name:lower():find(term:lower(), 1, true) then
                 local target = v
-                if v.Name == "HumanoidRootPart" or v.Name == "Head" then
-                    if v.Parent and v.Parent:IsA("Model") then target = v.Parent end
-                end
-                
-                local h = Instance.new("Highlight", target)
-                h.FillColor = Color3.fromRGB(255, 255, 0); h.OutlineColor = Color3.fromRGB(255, 255, 255); h.FillTransparency=0.5
-                table.insert(currentHighlights, h)
-                count = count + 1
+                if v.Name == "HumanoidRootPart" or v.Name == "Head" then if v.Parent and v.Parent:IsA("Model") then target = v.Parent end end
+                addHighlight(target)
             end
         end
+        -- Auto-Update listener
+        local c = workspace.DescendantAdded:Connect(function(v)
+            if #currentHighlights >= 30 then return end
+            if (v:IsA("BasePart") or v:IsA("Model")) and v.Name:lower():find(term:lower(), 1, true) then
+                local target = v
+                if v.Name == "HumanoidRootPart" or v.Name == "Head" then if v.Parent and v.Parent:IsA("Model") then target = v.Parent end end
+                addHighlight(target)
+            end
+        end)
+        table.insert(highlightConnections, c)
     end
-    HighlightBtn.Text = (count > 0) and ("✓"..count) or "0"
-    showToast(count > 0 and ("Found " .. count .. " items") or "No items found")
 end)
 
 -- EXPORT (Fixed Toggle)
