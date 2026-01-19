@@ -1,5 +1,5 @@
 --========================================
--- Punk X Debugger (Scrollable Exclude + Toggle Fix)
+-- Punk X Debugger (Themes & Menus Fixed)
 -- COMPLETE CODE - READY TO USE
 --========================================
 
@@ -19,6 +19,9 @@ local MAX_LOGS = 1000
 -- Forward Declarations
 local ExcludeBtn = nil
 local PinBtn = nil
+local ExportBtn = nil
+local ThemeBtn = nil
+local HistoryBtn = nil
 
 -- State
 local isMinimized = false
@@ -473,12 +476,12 @@ local Copy = mkBtn(BtnFrame, "Copy", "accentInfo", 0, 0.166)
 local Clear = mkBtn(BtnFrame, "Clear", "accentError", 0.166, 0.166)
 local Filter = mkBtn(BtnFrame, "Filter", "accentSuccess", 0.333, 0.166)
 local AutoScroll = mkBtn(BtnFrame, "Scroll", "accentNeutral", 0.500, 0.166)
-local ExportBtn = mkBtn(BtnFrame, "Export", "accentInfo", 0.666, 0.166)
-local ThemeBtn = mkBtn(BtnFrame, "Theme", "accentNeutral", 0.833, 0.166)
+ExportBtn = mkBtn(BtnFrame, "Export", "accentInfo", 0.666, 0.166)
+ThemeBtn = mkBtn(BtnFrame, "Theme", "accentNeutral", 0.833, 0.166)
 
 PinBtn = mkBtn(AdvRow, "Pin", "accentWarn", 0, 0.25)
 ExcludeBtn = mkBtn(AdvRow, "Exclude", "accentError", 0.25, 0.25)
-local HistoryBtn = mkBtn(AdvRow, "History", "accentSuccess", 0.50, 0.25)
+HistoryBtn = mkBtn(AdvRow, "History", "accentSuccess", 0.50, 0.25)
 local Close = mkBtn(AdvRow, "Close", "accentError", 0.75, 0.25)
 
 local allButtons = { InfoBtn, WarnBtn, ErrorBtn, TimestampBtn, LineNumBtn, RegexBtn, FontBtn, Copy, Clear, Filter, AutoScroll, ExportBtn, ThemeBtn, PinBtn, ExcludeBtn, HistoryBtn, Close }
@@ -501,12 +504,120 @@ Copy.MouseButton1Click:Connect(function() local t=table.concat(logHistory,"\n");
 PinBtn.MouseButton1Click:Connect(function() local t=SearchBox.Text; if t=="" then return end; local f=table.find(pinnedSearchTerms,t); if f then table.remove(pinnedSearchTerms,f); PinBtn.Text="Unpinned" else table.insert(pinnedSearchTerms,t); PinBtn.Text="Pinned!" end; pcall(function() for _,l in ipairs(virtualLogData) do l.isPinned=isPinned(l.message) end end); refreshVirtualScroll(); task.wait(1.5); PinBtn.Text="Pin" end)
 Close.MouseButton1Click:Connect(function() MainFrame.Visible = false end)
 
+-- RESTORED: Export Menu
+local exportMenuOpen = false
+ExportBtn.MouseButton1Click:Connect(function()
+    if exportMenuOpen then return end
+    exportMenuOpen = true
+    local menu = Instance.new("Frame", MainFrame)
+    menu.Size = UDim2.new(0.2, 0, 0.15, 0)
+    menu.Position = UDim2.new(0.64, 0, 0.63, 0)
+    menu.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    menu.BorderSizePixel = 0
+    menu.ZIndex = 300
+    Instance.new("UICorner", menu)
+
+    local function mk(txt, y, cb)
+        local b = Instance.new("TextButton", menu)
+        b.Size = UDim2.new(0.9, 0, 0.28, 0)
+        b.Position = UDim2.new(0.05, 0, y, 0)
+        b.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        b.Text = txt
+        b.TextColor3 = Color3.new(1,1,1)
+        b.ZIndex = 301
+        Instance.new("UICorner", b)
+        b.MouseButton1Click:Connect(function() cb(); menu:Destroy(); exportMenuOpen=false end)
+    end
+    mk(".txt", 0.05, function() saveLog("== EXPORT =="); ExportBtn.Text="✓ TXT" end)
+    mk(".json", 0.36, function() exportToJSON(); ExportBtn.Text="✓ JSON" end)
+    mk(".csv", 0.67, function() exportToCSV(); ExportBtn.Text="✓ CSV" end)
+    
+    task.wait(4)
+    if menu.Parent then menu:Destroy(); exportMenuOpen=false end
+    task.wait(1); ExportBtn.Text="Export"
+end)
+
+-- RESTORED: Theme Menu
+local themeMenuOpen = false
+local function applyTheme(name)
+    local t = themes[name] or themes.dark
+    MainFrame.BackgroundColor3 = t.bg
+    ScrollFrame.BackgroundColor3 = t.bg
+    SearchBox.BackgroundColor3 = t.search
+    SearchBox.TextColor3 = t.text
+    currentTheme = name
+    refreshVirtualScroll()
+end
+
+ThemeBtn.MouseButton1Click:Connect(function()
+    if themeMenuOpen then return end
+    themeMenuOpen = true
+    local menu = Instance.new("Frame", MainFrame)
+    menu.Size = UDim2.new(0.15, 0, 0.15, 0)
+    menu.Position = UDim2.new(0.8, 0, 0.63, 0)
+    menu.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    menu.BorderSizePixel = 0
+    menu.ZIndex = 300
+    Instance.new("UICorner", menu)
+
+    local function mk(txt, y, val)
+        local b = Instance.new("TextButton", menu)
+        b.Size = UDim2.new(0.9, 0, 0.28, 0)
+        b.Position = UDim2.new(0.05, 0, y, 0)
+        b.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        b.Text = txt
+        b.TextColor3 = Color3.new(1,1,1)
+        b.ZIndex = 301
+        Instance.new("UICorner", b)
+        b.MouseButton1Click:Connect(function() applyTheme(val); menu:Destroy(); themeMenuOpen=false end)
+    end
+    mk("Dark", 0.05, "dark")
+    mk("Light", 0.36, "light")
+    mk("Blue", 0.67, "blue")
+
+    task.wait(5)
+    if menu.Parent then menu:Destroy(); themeMenuOpen=false end
+end)
+
+-- RESTORED: History Menu
+local historyMenuOpen = false
+HistoryBtn.MouseButton1Click:Connect(function()
+    if historyMenuOpen then return end
+    if #searchHistory == 0 then return end
+    historyMenuOpen = true
+    
+    local menu = Instance.new("ScrollingFrame", MainFrame)
+    menu.Size = UDim2.new(0.3, 0, 0.25, 0)
+    menu.Position = UDim2.new(0.42, 0, 0.57, 0)
+    menu.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    menu.BorderSizePixel = 0
+    menu.ZIndex = 300
+    menu.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    Instance.new("UICorner", menu)
+    
+    local layout = Instance.new("UIListLayout", menu)
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    
+    for i, term in ipairs(searchHistory) do
+        local b = Instance.new("TextButton", menu)
+        b.Size = UDim2.new(1, -10, 0, 30)
+        b.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        b.Text = term
+        b.TextColor3 = Color3.new(1,1,1)
+        b.ZIndex = 301
+        Instance.new("UICorner", b)
+        b.MouseButton1Click:Connect(function() SearchBox.Text = term; menu:Destroy(); historyMenuOpen=false end)
+    end
+    
+    task.wait(8)
+    if menu.Parent then menu:Destroy(); historyMenuOpen=false end
+end)
+
 -- Fixed Exclude Menu (Toggle + Scroll + Style Revert)
 local excludeMenuOpen = false
 local excludeMenuRef = nil
 
 ExcludeBtn.MouseButton1Click:Connect(function()
-    -- TOGGLE FIX: If menu exists, close it and return
     if excludeMenuOpen then
         if excludeMenuRef and excludeMenuRef.Parent then excludeMenuRef:Destroy() end
         excludeMenuOpen = false
@@ -515,13 +626,9 @@ ExcludeBtn.MouseButton1Click:Connect(function()
     end
 
     local t = SearchBox.Text
-    
-    -- If text empty, show menu
     if t == "" then
         if #excludePatterns == 0 then return end
-        
         excludeMenuOpen = true
-        
         local m = Instance.new("ScrollingFrame", MainFrame)
         excludeMenuRef = m
         m.Size = UDim2.new(0.35, 0, 0.3, 0)
@@ -533,17 +640,13 @@ ExcludeBtn.MouseButton1Click:Connect(function()
         m.CanvasSize = UDim2.new(0, 0, 0, 0)
         Instance.new("UICorner", m)
         
-        local l = Instance.new("UIListLayout", m)
-        l.SortOrder = Enum.SortOrder.LayoutOrder
-        l.Padding = UDim.new(0, 2)
+        local l = Instance.new("UIListLayout", m); l.SortOrder = Enum.SortOrder.LayoutOrder; l.Padding = UDim.new(0, 2)
         
         for i, p in ipairs(excludePatterns) do
-            -- Container Frame (Width 1.0 to touch borders)
             local f = Instance.new("Frame", m)
-            f.Size = UDim2.new(1, -6, 0, 30) -- Padding 6px for scrollbar space
+            f.Size = UDim2.new(1, -6, 0, 30)
             f.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-            f.ZIndex = 201
-            f.LayoutOrder = i
+            f.ZIndex = 201; f.LayoutOrder = i
             Instance.new("UICorner", f)
             
             -- X Button (Fixed Right - Red Rounded Square)
@@ -556,7 +659,7 @@ ExcludeBtn.MouseButton1Click:Connect(function()
             btn.TextColor3 = Color3.new(1, 1, 1)
             btn.Font = Enum.Font.GothamBold
             btn.TextSize = 10
-            btn.ZIndex = 203 -- Above text scroll
+            btn.ZIndex = 203
             Instance.new("UICorner", btn)
             
             btn.MouseButton1Click:Connect(function()
@@ -569,7 +672,7 @@ ExcludeBtn.MouseButton1Click:Connect(function()
             
             -- Horizontal Scrolling Text (Fills left space)
             local scrollText = Instance.new("ScrollingFrame", f)
-            scrollText.Size = UDim2.new(1, -35, 1, 0) -- Leave space for button
+            scrollText.Size = UDim2.new(1, -35, 1, 0)
             scrollText.BackgroundTransparency = 1
             scrollText.ScrollingDirection = Enum.ScrollingDirection.X
             scrollText.CanvasSize = UDim2.new(0, 0, 0, 0)
@@ -588,25 +691,11 @@ ExcludeBtn.MouseButton1Click:Connect(function()
             txt.TextXAlignment = Enum.TextXAlignment.Left
             txt.ZIndex = 202
         end
-        
-        -- Auto-close timer
-        task.delay(10, function()
-            if m and m.Parent then
-                m:Destroy()
-                if excludeMenuRef == m then excludeMenuOpen = false end
-            end
-        end)
-        
+        task.delay(10, function() if m and m.Parent then m:Destroy(); if excludeMenuRef == m then excludeMenuOpen = false end end end)
         return
     end
-    
-    -- If text exists, add exclusion
     if table.find(excludePatterns, t) then return end
-    table.insert(excludePatterns, t)
-    ExcludeBtn.Text = "✓ Added"
-    refreshVirtualScroll()
-    task.wait(1.5)
-    ExcludeBtn.Text = "Exclude ("..#excludePatterns..")"
+    table.insert(excludePatterns, t); ExcludeBtn.Text = "✓ Added"; refreshVirtualScroll(); task.wait(1.5); ExcludeBtn.Text = "Exclude ("..#excludePatterns..")"
 end)
 
 -- Init
