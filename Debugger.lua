@@ -728,8 +728,23 @@ end)
 LogService.MessageOut:Connect(addLog)
 
 --========================================
--- BUTTONS
+-- BUTTONS - MONOCHROME PROFESSIONAL 🎨
 --========================================
+
+-- Professional Color Palette
+local btnColors = {
+    default = Color3.fromRGB(45, 45, 45),
+    hover = Color3.fromRGB(60, 60, 60),
+    active = Color3.fromRGB(70, 70, 70),
+    disabled = Color3.fromRGB(35, 35, 35),
+    
+    -- Accent colors (only when button is ON/active)
+    accentInfo = Color3.fromRGB(70, 130, 220),
+    accentWarn = Color3.fromRGB(220, 160, 50),
+    accentError = Color3.fromRGB(220, 70, 70),
+    accentSuccess = Color3.fromRGB(70, 180, 90),
+    accentNeutral = Color3.fromRGB(100, 100, 100)
+}
 
 -- Row 1: Type Filters
 local FilterRow = Instance.new("Frame", MainFrame)
@@ -737,27 +752,45 @@ FilterRow.Size = UDim2.new(0.96, 0, 0.05, 0)
 FilterRow.Position = UDim2.new(0.02, 0, 0.71, 0)
 FilterRow.BackgroundTransparency = 1
 
-local function mkFilterBtn(txt, col, x, width)
+local function mkFilterBtn(txt, accentColor, x, width)
     width = width or 0.19
     local b = Instance.new("TextButton", FilterRow)
     b.Size = UDim2.new(width, -4, 1, 0)
     b.Position = UDim2.new(x, 0, 0, 0)
-    b.BackgroundColor3 = col
+    b.BackgroundColor3 = btnColors.default
     b.Text = txt
     b.Font = Enum.Font.GothamBold
     b.TextColor3 = Color3.new(1, 1, 1)
     b.TextSize = 11
-    Instance.new("UICorner", b)
+    local corner = Instance.new("UICorner", b)
+    corner.CornerRadius = UDim.new(0, 4)
+    
+    -- Store accent color for later
+    b:SetAttribute("AccentColor", accentColor)
+    
+    -- Hover effect
+    b.MouseEnter:Connect(function()
+        if b.BackgroundColor3 == btnColors.default then
+            b.BackgroundColor3 = btnColors.hover
+        end
+    end)
+    
+    b.MouseLeave:Connect(function()
+        if b.BackgroundColor3 == btnColors.hover then
+            b.BackgroundColor3 = btnColors.default
+        end
+    end)
+    
     return b
 end
 
-local InfoBtn = mkFilterBtn("INFO", Color3.fromRGB(70, 120, 200), 0, 0.15)
-local WarnBtn = mkFilterBtn("WARN", Color3.fromRGB(200, 150, 0), 0.16, 0.15)
-local ErrorBtn = mkFilterBtn("ERROR", Color3.fromRGB(200, 70, 70), 0.32, 0.15)
-local TimestampBtn = mkFilterBtn("Time", Color3.fromRGB(80, 80, 80), 0.48, 0.12)
-local LineNumBtn = mkFilterBtn("Line", Color3.fromRGB(80, 80, 80), 0.61, 0.12)
-local RegexBtn = mkFilterBtn("Regex", Color3.fromRGB(100, 100, 100), 0.74, 0.12)
-local FontBtn = mkFilterBtn("A" .. fontSize, Color3.fromRGB(90, 90, 90), 0.87, 0.12)
+local InfoBtn = mkFilterBtn("INFO", "accentInfo", 0, 0.15)
+local WarnBtn = mkFilterBtn("WARN", "accentWarn", 0.16, 0.15)
+local ErrorBtn = mkFilterBtn("ERROR", "accentError", 0.32, 0.15)
+local TimestampBtn = mkFilterBtn("Time", "accentNeutral", 0.48, 0.12)
+local LineNumBtn = mkFilterBtn("Line", "accentNeutral", 0.61, 0.12)
+local RegexBtn = mkFilterBtn("Regex", "accentNeutral", 0.74, 0.12)
+local FontBtn = mkFilterBtn("A" .. fontSize, "accentNeutral", 0.87, 0.12)
 
 -- Row 2: Main Controls
 local BtnFrame = Instance.new("Frame", MainFrame)
@@ -765,43 +798,59 @@ BtnFrame.Size = UDim2.new(0.96, 0, 0.05, 0)
 BtnFrame.Position = UDim2.new(0.02, 0, 0.78, 0)
 BtnFrame.BackgroundTransparency = 1
 
-local function mkBtn(txt, col, x, width)
+local function mkBtn(txt, accentColor, x, width)
     width = width or 0.15
     local b = Instance.new("TextButton", BtnFrame)
     b.Size = UDim2.new(width, -4, 1, 0)
     b.Position = UDim2.new(x, 0, 0, 0)
-    b.BackgroundColor3 = col
+    b.BackgroundColor3 = btnColors.default
     b.Text = txt
     b.Font = Enum.Font.GothamBold
     b.TextColor3 = Color3.new(1, 1, 1)
     b.TextSize = 11
-    Instance.new("UICorner", b)
+    local corner = Instance.new("UICorner", b)
+    corner.CornerRadius = UDim.new(0, 4)
+    
+    b:SetAttribute("AccentColor", accentColor)
+    
+    b.MouseEnter:Connect(function()
+        if b.BackgroundColor3 == btnColors.default then
+            b.BackgroundColor3 = btnColors.hover
+        end
+    end)
+    
+    b.MouseLeave:Connect(function()
+        if b.BackgroundColor3 == btnColors.hover then
+            b.BackgroundColor3 = btnColors.default
+        end
+    end)
+    
     return b
 end
 
-local Copy = mkBtn("Copy", Color3.fromRGB(0, 120, 215), 0)
-local Clear = mkBtn("Clear", Color3.fromRGB(255, 140, 0), 0.16)
-local Filter = mkBtn("Filter", Color3.fromRGB(0, 180, 80), 0.32)
-local AutoScroll = mkBtn("Scroll", Color3.fromRGB(80, 150, 80), 0.48)
-local ExportBtn = mkBtn("Export", Color3.fromRGB(100, 100, 200), 0.64)
-local ThemeBtn = mkBtn("Theme", Color3.fromRGB(120, 80, 150), 0.80)
+local Copy = mkBtn("Copy", "accentInfo", 0, 0.158)
+local Clear = mkBtn("Clear", "accentError", 0.168, 0.158)
+local Filter = mkBtn("Filter", "accentSuccess", 0.336, 0.158)
+local AutoScroll = mkBtn("Scroll", "accentNeutral", 0.504, 0.158)
+local ExportBtn = mkBtn("Export", "accentInfo", 0.672, 0.158)
+local ThemeBtn = mkBtn("Theme", "accentNeutral", 0.84, 0.158)
 
--- Row 3: Advanced (DELETED Selected & Spam+ buttons)
+-- Row 3: Advanced
 local AdvRow = Instance.new("Frame", MainFrame)
 AdvRow.Size = UDim2.new(0.96, 0, 0.05, 0)
 AdvRow.Position = UDim2.new(0.02, 0, 0.84, 0)
 AdvRow.BackgroundTransparency = 1
 
-local PinBtn = mkBtn("Pin", Color3.fromRGB(200, 150, 50), 0)
+local PinBtn = mkBtn("Pin", "accentWarn", 0, 0.158)
 PinBtn.Parent = AdvRow
 
-local ExcludeBtn = mkBtn("Exclude", Color3.fromRGB(150, 50, 50), 0.21)
+local ExcludeBtn = mkBtn("Exclude", "accentError", 0.168, 0.158)
 ExcludeBtn.Parent = AdvRow
 
-local HistoryBtn = mkBtn("History", Color3.fromRGB(100, 150, 100), 0.42)
+local HistoryBtn = mkBtn("History", "accentSuccess", 0.336, 0.158)
 HistoryBtn.Parent = AdvRow
 
-local Close = mkBtn("Close", Color3.fromRGB(200, 60, 60), 0.63)
+local Close = mkBtn("Close", "accentError", 0.504, 0.158)
 Close.Parent = AdvRow
 
 --========================================
@@ -848,42 +897,52 @@ ScrollFrame:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
 end)
 
 --========================================
--- BUTTON HANDLERS
+-- BUTTON HANDLERS (WITH MONOCHROME STATES)
 --========================================
+
+-- Helper function to set button active state
+local function setButtonActive(button, isActive)
+    local accentName = button:GetAttribute("AccentColor")
+    if isActive then
+        button.BackgroundColor3 = btnColors[accentName] or btnColors.active
+    else
+        button.BackgroundColor3 = btnColors.default
+    end
+end
 
 InfoBtn.MouseButton1Click:Connect(function()
     typeFilters.INFO = not typeFilters.INFO
-    InfoBtn.BackgroundColor3 = typeFilters.INFO and Color3.fromRGB(70, 120, 200) or Color3.fromRGB(40, 40, 40)
+    setButtonActive(InfoBtn, typeFilters.INFO)
     refreshVirtualScroll()
 end)
 
 WarnBtn.MouseButton1Click:Connect(function()
     typeFilters.WARN = not typeFilters.WARN
-    WarnBtn.BackgroundColor3 = typeFilters.WARN and Color3.fromRGB(200, 150, 0) or Color3.fromRGB(40, 40, 40)
+    setButtonActive(WarnBtn, typeFilters.WARN)
     refreshVirtualScroll()
 end)
 
 ErrorBtn.MouseButton1Click:Connect(function()
     typeFilters.ERROR = not typeFilters.ERROR
-    ErrorBtn.BackgroundColor3 = typeFilters.ERROR and Color3.fromRGB(200, 70, 70) or Color3.fromRGB(40, 40, 40)
+    setButtonActive(ErrorBtn, typeFilters.ERROR)
     refreshVirtualScroll()
 end)
 
 TimestampBtn.MouseButton1Click:Connect(function()
     showTimestamps = not showTimestamps
-    TimestampBtn.BackgroundColor3 = showTimestamps and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(40, 40, 40)
+    setButtonActive(TimestampBtn, showTimestamps)
     refreshVirtualScroll()
 end)
 
 LineNumBtn.MouseButton1Click:Connect(function()
     showLineNumbers = not showLineNumbers
-    LineNumBtn.BackgroundColor3 = showLineNumbers and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(40, 40, 40)
+    setButtonActive(LineNumBtn, showLineNumbers)
     refreshVirtualScroll()
 end)
 
 RegexBtn.MouseButton1Click:Connect(function()
     useRegex = not useRegex
-    RegexBtn.BackgroundColor3 = useRegex and Color3.fromRGB(100, 200, 100) or Color3.fromRGB(100, 100, 100)
+    setButtonActive(RegexBtn, useRegex)
     SearchBox.PlaceholderText = useRegex and "Search logs... (Regex: ON)" or "Search logs... (Regex: OFF)"
     refreshVirtualScroll()
 end)
@@ -897,20 +956,20 @@ end)
 
 Filter.MouseButton1Click:Connect(function()
     isFilterActive = not isFilterActive
-    Filter.BackgroundColor3 = isFilterActive and Color3.fromRGB(0, 180, 80) or Color3.fromRGB(180, 50, 50)
+    setButtonActive(Filter, isFilterActive)
     refreshVirtualScroll()
 end)
 
 AutoScroll.MouseButton1Click:Connect(function()
     autoScrollEnabled = not autoScrollEnabled
-    AutoScroll.BackgroundColor3 = autoScrollEnabled and Color3.fromRGB(80, 150, 80) or Color3.fromRGB(150, 80, 80)
+    setButtonActive(AutoScroll, autoScrollEnabled)
     if autoScrollEnabled then
         userHasScrolled = false
         task.wait(0.1)
         ScrollFrame.CanvasPosition = Vector2.new(0, ScrollFrame.CanvasSize.Y.Offset)
         task.wait(0.2)
         autoScrollEnabled = false
-        AutoScroll.BackgroundColor3 = Color3.fromRGB(150, 80, 80)
+        setButtonActive(AutoScroll, false)
     end
 end)
 
@@ -935,8 +994,10 @@ Copy.MouseButton1Click:Connect(function()
         end
     end)
     Copy.Text = ok and "✓" or "✗"
+    Copy.BackgroundColor3 = ok and btnColors.accentSuccess or btnColors.accentError
     task.wait(1)
     Copy.Text = "Copy"
+    Copy.BackgroundColor3 = btnColors.default
 end)
 
 --========================================
@@ -1065,10 +1126,10 @@ PinBtn.MouseButton1Click:Connect(function()
     local term = SearchBox.Text
     if term == "" then
         PinBtn.Text = "Empty!"
-        PinBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        PinBtn.BackgroundColor3 = btnColors.accentError
         task.wait(1)
         PinBtn.Text = "Pin"
-        PinBtn.BackgroundColor3 = Color3.fromRGB(200, 150, 50)
+        PinBtn.BackgroundColor3 = btnColors.default
         return
     end
     
@@ -1076,11 +1137,11 @@ PinBtn.MouseButton1Click:Connect(function()
     if alreadyPinned then
         table.remove(pinnedSearchTerms, alreadyPinned)
         PinBtn.Text = "Unpinned"
-        PinBtn.BackgroundColor3 = Color3.fromRGB(150, 100, 50)
+        PinBtn.BackgroundColor3 = btnColors.hover
     else
         table.insert(pinnedSearchTerms, term)
         PinBtn.Text = "Pinned!"
-        PinBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+        PinBtn.BackgroundColor3 = btnColors.accentSuccess
     end
     
     for _, logData in ipairs(virtualLogData) do
@@ -1091,7 +1152,7 @@ PinBtn.MouseButton1Click:Connect(function()
     
     task.wait(1.5)
     PinBtn.Text = "Pin"
-    PinBtn.BackgroundColor3 = Color3.fromRGB(200, 150, 50)
+    PinBtn.BackgroundColor3 = btnColors.default
 end)
 
 -- 🔧 IMPROVED: Exclude with Feedback
@@ -1099,10 +1160,10 @@ ExcludeBtn.MouseButton1Click:Connect(function()
     local term = SearchBox.Text
     if term == "" then
         ExcludeBtn.Text = "Empty!"
-        ExcludeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        ExcludeBtn.BackgroundColor3 = btnColors.accentError
         task.wait(1)
         ExcludeBtn.Text = "Exclude"
-        ExcludeBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+        ExcludeBtn.BackgroundColor3 = btnColors.default
         return
     end
     
@@ -1115,12 +1176,12 @@ ExcludeBtn.MouseButton1Click:Connect(function()
     
     table.insert(excludePatterns, term)
     ExcludeBtn.Text = "✓ Added"
-    ExcludeBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+    ExcludeBtn.BackgroundColor3 = btnColors.accentSuccess
     refreshVirtualScroll()
     
     task.wait(1.5)
     ExcludeBtn.Text = "Exclude (" .. #excludePatterns .. ")"
-    ExcludeBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+    ExcludeBtn.BackgroundColor3 = btnColors.default
 end)
 
 -- 🔧 FIXED: History Dropdown
@@ -1188,11 +1249,17 @@ Close.MouseButton1Click:Connect(function()
 end)
 
 --========================================
--- INITIAL REFRESH
+-- INITIAL SETUP - SET DEFAULT BUTTON STATES
 --========================================
 refreshVirtualScroll()
 
-print("╔════════════════════════════════════╗")
-print("║           Punk X Debugger          ║")
-print("╚════════════════════════════════════╝")
+-- Set initial active states for toggle buttons
+setButtonActive(InfoBtn, typeFilters.INFO)
+setButtonActive(WarnBtn, typeFilters.WARN)
+setButtonActive(ErrorBtn, typeFilters.ERROR)
+setButtonActive(TimestampBtn, showTimestamps)
+setButtonActive(LineNumBtn, showLineNumbers)
+setButtonActive(RegexBtn, useRegex)
+setButtonActive(Filter, isFilterActive)
+print("Punk X Debugger")
 print("🎮 Ready to debug!")
