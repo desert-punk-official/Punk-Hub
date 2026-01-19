@@ -231,7 +231,7 @@ UIListLayout.Parent = ScrollFrame
 --========================================
 local ResizeHandle = Instance.new("TextButton")
 ResizeHandle.Size = UDim2.new(0, 30, 0, 30)
-ResizeHandle.Position = UDim2.new(1, -40, 1, -45)
+ResizeHandle.Position = UDim2.new(1, -30, 1, -30)
 ResizeHandle.AnchorPoint = Vector2.new(0, 0)
 ResizeHandle.BackgroundTransparency = 1
 ResizeHandle.Text = "↗"
@@ -692,12 +692,14 @@ function refreshVirtualScroll()
 end
 
 --========================================
--- SEARCH
+-- SEARCH (FIXED DEBOUNCE CANCEL BUG)
 --========================================
 
 SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
+    -- 🔧 FIX: Properly cancel task using task.cancel()
     if searchDebounce then
-        searchDebounce:Cancel()
+        task.cancel(searchDebounce)
+        searchDebounce = nil
     end
     
     searchDebounce = task.delay(0.3, function()
@@ -709,6 +711,7 @@ SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
             end
         end
         refreshVirtualScroll()
+        searchDebounce = nil
     end)
 end)
 
