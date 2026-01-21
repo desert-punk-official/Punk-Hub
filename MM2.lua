@@ -815,7 +815,7 @@ local Window = WindUI:CreateWindow({
     Resizable = true,
     SideBarWidth = 160,
     OpenButton = {
-        Enabled = false, 
+        Enabled = false,
     },
 })
 
@@ -837,6 +837,7 @@ button.BackgroundTransparency = 1
 button.BorderSizePixel = 0
 button.ScaleType = Enum.ScaleType.Fit
 button.Visible = false
+button.AutoButtonColor = false
 
 local corner = Instance.new("UICorner")
 corner.CornerRadius = UDim.new(1, 0)
@@ -857,42 +858,49 @@ Window:OnClose(function()
     end
 end)
 
+local UIS = game:GetService("UserInputService")
 
-local player = game.Players.LocalPlayer
+local dragging = false
+local dragStart
+local startPos
 
-local gui = Instance.new("ScreenGui")
-gui.Parent = player:WaitForChild("PlayerGui")
-gui.ResetOnSpawn = false
+local function update(input)
+    local delta = input.Position - dragStart
+    button.Position = UDim2.new(
+        startPos.X.Scale,
+        startPos.X.Offset + delta.X,
+        startPos.Y.Scale,
+        startPos.Y.Offset + delta.Y
+    )
+end
 
-local button = Instance.new("ImageButton")
-button.Parent = gui
-button.Size = UDim2.fromScale(0.13, 0.13)
-button.Position = UDim2.new(0.25, 0, 0.1, 0)
-button.AnchorPoint = Vector2.new(0.5, 0.5)
-button.Image = "rbxassetid://89306785777733"
-button.BackgroundTransparency = 1
-button.BorderSizePixel = 0
-button.ScaleType = Enum.ScaleType.Fit
-button.Visible = false 
+button.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = button.Position
 
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(1, 0)
-corner.Parent = button
-
-
-local isMinimized = false
-
-button.MouseButton1Click:Connect(function()
-    Window:Open()
-    button.Visible = false
-    isMinimized = false
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
 end)
 
+button.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement
+    or input.UserInputType == Enum.UserInputType.Touch then
+        if dragging then
+            update(input)
+        end
+    end
+end)
 
-Window:OnClose(function()
-    if not isMinimized then
-        button.Visible = true
-        isMinimized = true
+UIS.InputChanged:Connect(function(input)
+    if dragging then
+        update(input)
     end
 end)
 
@@ -1103,7 +1111,7 @@ ToolsTab:Toggle({
     end,
 })
 
-local DetectablesTab = Window:Tab({ Title = "Detectables", Icon = "lucide:alert-triangle" })
+local DetectablesTab = Window:Tab({ Title = "Detectables", Icon = "lucide:circle-alert" })
 
 DetectablesTab:Section({ Title = "Chat Actions" })
 
