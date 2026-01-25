@@ -14,7 +14,7 @@ local HttpService = game:GetService("HttpService")
 local TweenService = game:GetService("TweenService")
 
 -- Config
-local LOG_FILE_NAME = "PunkX_Logs.txt"
+local LOG_FILE_NAME = "Punk-X-Files/PunkX_Logs.txt"
 local MAX_LOGS = 1000
 
 -- Forward Declarations
